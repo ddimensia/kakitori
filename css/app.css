@@ -304,6 +304,7 @@ select:focus, input:focus { border-color: var(--cover); outline: none; box-shado
 .readings dt { color: var(--ink-soft); font-size: var(--step--1); }
 .readings dd { margin: 0; font-size: var(--step-2); }
 .readings b { font-weight: 600; }
+.readings .okuri { color: var(--ink-soft); }
 .context { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem; margin: 0 0 1rem; padding: 0.7rem 0 0; border-top: 1px dashed var(--rule); }
 .context-word { font-size: var(--step-3); letter-spacing: 0.05em; }
 .context-reading { color: var(--ink-soft); }

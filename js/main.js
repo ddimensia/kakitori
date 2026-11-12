@@ -157,7 +157,7 @@ async function boot() {
   route();
   warmRecognizer();
   const s = state.settings;
-  if (s.wkToken && (!state.sync || Date.now() - state.sync.at > s.autoSyncHours * 3600000)) sync({ quiet: true });
+  if (s.kanjiSource === 'wanikani' && s.wkToken && (!state.sync || Date.now() - state.sync.at > s.autoSyncHours * 3600000)) sync({ quiet: true });
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }

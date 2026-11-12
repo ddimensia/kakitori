@@ -1,6 +1,6 @@
 // Settings: WaniKani connection, which characters to study, scheduling, grading and backups.
 
-import { state, saveSettings, loadState } from '../state.js';
+import { state, saveSettings, loadState, KANJI_SOURCES, isBuiltinSource } from '../state.js';
 import { SRS_THRESHOLDS } from '../wanikani.js';
 import { STRICTNESS } from '../grader.js';
 import { exportAll, importAll, wipeAll } from '../store.js';
@@ -19,6 +19,23 @@ export function renderSettings(view, { onSync, syncStatus, onRefresh }) {
 
       <form class="settings-form" autocomplete="off">
         <fieldset>
+          <legend>Characters</legend>
+          <label class="field">Kanji to study
+            <select name="kanjiSource">${Object.entries(KANJI_SOURCES).map(([v, l]) => `<option value="${v}" ${v === s.kanjiSource ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+            <span class="help">${isBuiltinSource(s.kanjiSource)
+              ? 'Kanji arrive through lessons in this order. Meanings and readings come from KANJIDIC2; JLPT levels are the widely used unofficial lists, since the JLPT no longer publishes official ones.'
+              : 'WaniKani adds the kanji you’ve started there. The built-in lists work without a WaniKani account.'}
+              Progress is kept per character, so switching keeps what you’ve learned.</span>
+          </label>
+          <label class="check"><input type="checkbox" name="vocabContext" ${s.vocabContext ? 'checked' : ''}> Show an example word as a hint, with the kanji blanked out</label>
+          <label class="check"><input type="checkbox" name="hiragana" ${s.hiragana ? 'checked' : ''}> Hiragana</label>
+          <label class="check"><input type="checkbox" name="katakana" ${s.katakana ? 'checked' : ''}> Katakana</label>
+          <label class="check"><input type="checkbox" name="dakuten" ${s.dakuten ? 'checked' : ''}> Include kana with dakuten and handakuten (が, ぱ…)</label>
+          <span class="help">Turning a set off hides it but keeps its progress.</span>
+        </fieldset>
+
+${s.kanjiSource === 'wanikani' ? `
+        <fieldset>
           <legend>WaniKani</legend>
           <p class="help unofficial">Kakitori is an unofficial third-party app. It isn’t made by, affiliated with or endorsed by WaniKani or Tofugu LLC.</p>
           <label class="field">API token
@@ -28,25 +45,16 @@ export function renderSettings(view, { onSync, syncStatus, onRefresh }) {
             </span>
             <span class="help">Create a read-only token on <a href="${TOKEN_URL}" target="_blank" rel="noopener">WaniKani’s API tokens page</a>. It’s stored only in this browser and sent only to WaniKani.</span>
           </label>
-          <label class="field">Kanji to include
+          <label class="field">WaniKani kanji to include
             <select name="knownStage">${SRS_THRESHOLDS.map((t) => `<option value="${t.stage}" ${t.stage === s.knownStage ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select>
             <span class="help">Only kanji at this WaniKani stage or higher appear here.</span>
           </label>
-          <label class="check"><input type="checkbox" name="vocabContext" ${s.vocabContext ? 'checked' : ''}> Show a vocabulary word you know as a hint, with the kanji blanked out</label>
           <div class="field-actions">
             <button type="button" class="btn" data-act="sync" ${s.wkToken && !syncStatus ? '' : 'disabled'} ${syncStatus ? 'data-sync-status' : ''}>${syncStatus ? esc(syncStatus) + '…' : 'Sync now'}</button>
             <span class="help">${sync ? `Last synced ${esc(relativeTime(sync.at))}: ${sync.count} kanji.` : 'Not synced yet.'} The app also syncs when opened if the last sync is over ${s.autoSyncHours} hours old.</span>
           </div>
         </fieldset>
-
-        <fieldset>
-          <legend>Characters</legend>
-          <label class="check"><input type="checkbox" name="includeKanji" ${s.includeKanji ? 'checked' : ''}> Kanji from WaniKani</label>
-          <label class="check"><input type="checkbox" name="hiragana" ${s.hiragana ? 'checked' : ''}> Hiragana</label>
-          <label class="check"><input type="checkbox" name="katakana" ${s.katakana ? 'checked' : ''}> Katakana</label>
-          <label class="check"><input type="checkbox" name="dakuten" ${s.dakuten ? 'checked' : ''}> Include kana with dakuten and handakuten (が, ぱ…)</label>
-          <span class="help">Turning a set off hides it but keeps its progress.</span>
-        </fieldset>
+` : ''}
 
         <fieldset>
           <legend>Lessons and reviews</legend>
@@ -94,6 +102,9 @@ export function renderSettings(view, { onSync, syncStatus, onRefresh }) {
         The adapted data is shared under the same license.
         Handwriting recognition from <a href="https://github.com/asdfjkl/kanjicanvas" target="_blank" rel="noopener">KanjiCanvas</a> by Dominik Klein, MIT license.
         Scheduling by <a href="https://github.com/open-spaced-repetition/ts-fsrs" target="_blank" rel="noopener">ts-fsrs</a>, MIT license.
+        Built-in kanji lists: meanings, readings, school grades and frequency ranks from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" target="_blank" rel="noopener">KANJIDIC2</a>
+        and example words from <a href="https://www.edrdg.org/jmdict/j_jmdict.html" target="_blank" rel="noopener">JMdict</a>, both by the Electronic Dictionary Research and Development Group,
+        used under <a href="https://www.edrdg.org/edrdg/licence.html" target="_blank" rel="noopener">CC BY-SA 4.0</a>; JLPT levels from <a href="https://www.tanos.co.uk/jlpt/" target="_blank" rel="noopener">Jonathan Waller’s JLPT lists</a>, CC BY.
         Fonts: Klee One and Zen Kaku Gothic New, SIL Open Font License.
         Kanji meanings, readings and vocabulary come from your <a href="https://www.wanikani.com" target="_blank" rel="noopener">WaniKani</a> account.
         They are © Tofugu LLC, used under <a href="https://www.wanikani.com/terms" target="_blank" rel="noopener">WaniKani’s terms</a>, and aren’t covered by Kakitori’s license.</p>
@@ -116,10 +127,15 @@ export function renderSettings(view, { onSync, syncStatus, onRefresh }) {
       if (el.max) v = Math.min(Number(el.max), v);
     }
     const tokenChanged = el.name === 'wkToken' && v !== state.settings.wkToken;
-    await saveSettings({ [el.name]: v });
+    try {
+      await saveSettings({ [el.name]: v });
+    } catch (err) {
+      toast(`Couldn’t load the kanji list: ${err.message}`, { error: true });
+      return;
+    }
     toast('Saved.');
     if (tokenChanged && v) onSync();
-    else if (el.name === 'wkToken' || el.name === 'includeKanji') onRefresh();
+    else if (el.name === 'wkToken' || el.name === 'kanjiSource') onRefresh();
   });
 
   view.addEventListener('click', async (e) => {

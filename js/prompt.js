@@ -3,8 +3,15 @@
 import { esc } from './ui.js';
 import { promptFor } from './state.js';
 
+/** A reading; KANJIDIC marks okurigana after a dot (はや.い), shown lighter. */
+function readingMarkup(reading) {
+  const i = reading.indexOf('.');
+  if (i < 0) return esc(reading);
+  return `${esc(reading.slice(0, i))}<span class="okuri">${esc(reading.slice(i + 1))}</span>`;
+}
+
 function readingList(list) {
-  return list.map((r) => (r.primary ? `<b>${esc(r.reading)}</b>` : esc(r.reading))).join('、');
+  return list.map((r) => (r.primary ? `<b>${readingMarkup(r.reading)}</b>` : readingMarkup(r.reading))).join('、');
 }
 
 function contextWord(subject, char, pick, reveal) {
@@ -30,7 +37,7 @@ export function promptMarkup(card, { reveal = false, strokeCount = null, context
   if (p.kind === 'kanji') {
     const s = p.subject;
     if (!s) {
-      return `<div class="prompt-kind">Kanji</div><p class="meaning">No WaniKani data for this kanji. Sync again in Settings.</p>${revealed}`;
+      return `<div class="prompt-kind"><span>Kanji</span></div><p class="meaning">No meaning or reading data for this kanji.</p>${revealed}`;
     }
     const [primary, ...rest] = s.meanings;
     const r = s.readings || {};
@@ -38,7 +45,7 @@ export function promptMarkup(card, { reveal = false, strokeCount = null, context
       r.onyomi?.length ? `<dt>On’yomi</dt><dd lang="ja">${readingList(r.onyomi)}</dd>` : '',
       r.kunyomi?.length ? `<dt>Kun’yomi</dt><dd lang="ja">${readingList(r.kunyomi)}</dd>` : '',
     ].join('');
-    return `<div class="prompt-kind"><span>Kanji</span><span class="level">Level ${esc(s.level)}</span></div>
+    return `<div class="prompt-kind"><span>Kanji</span><span class="level">${esc(s.levelLabel)}</span></div>
       <p class="meaning">${esc(primary || '')}</p>
       ${rest.length ? `<p class="alt-meanings">${esc(rest.join(', '))}</p>` : ''}
       ${rows ? `<dl class="readings">${rows}</dl>` : ''}

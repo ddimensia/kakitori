@@ -6,7 +6,7 @@ Usage: python3 tools/build_precache.py <app dir>
 import hashlib, json, os, sys
 
 app = sys.argv[1]
-files = []
+files = ['data/kanji-info.json']
 for folder in ('data/strokes', 'fonts'):
     for fn in sorted(os.listdir(os.path.join(app, folder))):
         if fn.endswith(('.json', '.woff2')):

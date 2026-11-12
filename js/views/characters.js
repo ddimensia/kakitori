@@ -1,6 +1,6 @@
 // Character sheet (grid of practice squares) and the per-character detail dialog.
 
-import { state, setSuspended, resetCard, kindLabel } from '../state.js';
+import { state, setSuspended, resetCard, kanjiInfo, groupFor } from '../state.js';
 import { strength, STRENGTH_LABELS, formatInterval, retrievability, State } from '../srs.js';
 import { getGlyph } from '../strokes.js';
 import { StrokePlayer } from '../glyphview.js';
@@ -24,15 +24,7 @@ function groupCards(cards) {
   const groups = [];
   const by = new Map();
   for (const c of cards) {
-    let key, label;
-    if (c.kind === 'kanji') {
-      const lvl = state.subjects.get(c.char)?.level ?? 0;
-      key = `k${String(lvl).padStart(2, '0')}`;
-      label = lvl ? `Kanji, level ${lvl}` : 'Kanji';
-    } else {
-      key = c.kind === 'hiragana' ? 'a' : 'b';
-      label = kindLabel(c.kind);
-    }
+    const { key, label } = groupFor(c);
     if (!by.has(key)) { const g = { key, label, cards: [] }; by.set(key, g); groups.push(g); }
     by.get(key).cards.push(c);
   }
@@ -73,7 +65,7 @@ function statRows(card) {
 /** Detail dialog for one card. `onPractice(card)` starts free practice. */
 export async function openCardDetail(card, { onPractice, onChange = () => {} }) {
   const glyph = await getGlyph(card.char);
-  const sub = card.kind === 'kanji' ? state.subjects.get(card.char) : null;
+  const info = card.kind === 'kanji' ? kanjiInfo(card.char) : null;
   const d = document.createElement('dialog');
   d.className = 'dialog detail';
   d.setAttribute('aria-label', `${card.char} details`);
@@ -85,7 +77,7 @@ export async function openCardDetail(card, { onPractice, onChange = () => {} }) 
       <div class="detail-info">
         <div class="prompt">${promptMarkup(card, { showContext: true, reveal: true, showAnswerChar: false })}</div>
         <dl class="stats">${statRows(card)}</dl>
-        ${sub?.url ? `<p><a href="${esc(sub.url)}" target="_blank" rel="noopener">Open on WaniKani</a></p>` : ''}
+        ${info?.url ? `<p><a href="${esc(info.url)}" target="_blank" rel="noopener">${esc(info.urlLabel)}</a></p>` : ''}
       </div>
     </div>
     <div class="dialog-actions">
@@ -161,9 +153,12 @@ export function renderCharacters(view, { onPractice }) {
     if (query) {
       const q = query.toLowerCase();
       if (c.char.includes(query)) return true;
-      const sub = c.kind === 'kanji' ? state.subjects.get(c.char) : null;
-      const hay = sub ? [...sub.meanings, ...Object.values(sub.readings || {}).flat().map((r) => r.reading)] : [shortGloss(c)];
-      return hay.some((h) => h.toLowerCase().includes(q));
+      const info = c.kind === 'kanji' ? kanjiInfo(c.char) : null;
+      const hay = info
+        ? [...info.meanings, ...Object.values(info.readings || {}).flat().map((r) => r.reading.replace('.', '')), ...info.words.map((w) => w.w)]
+        : [shortGloss(c)];
+      const qk = q.replace(/[\u3041-\u3096]/g, (m) => String.fromCharCode(m.charCodeAt(0) + 0x60)); // on'yomi are in katakana
+      return hay.some((h) => { const l = h.toLowerCase(); return l.includes(q) || l.includes(qk); });
     }
     return true;
   }

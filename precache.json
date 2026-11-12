@@ -1,6 +1,7 @@
 {
-"version": "21d77e801bd8",
+"version": "fdc1a328c874",
 "files": [
+"data/kanji-info.json",
 "data/strokes/200.json",
 "data/strokes/201.json",
 "data/strokes/20b.json",
@@ -354,5 +355,5 @@
 "fonts/zen-kaku-gothic-new-latin-ext-500-normal.woff2",
 "fonts/zen-kaku-gothic-new-latin-ext-700-normal.woff2"
 ],
-"bytes": 14846944
+"bytes": 15520170
 }

@@ -1,4 +1,5 @@
-// App state: settings, cards and WaniKani subjects held in memory and written through to storage.
+// App state: settings, cards, WaniKani subjects and the built-in kanji lists, held in memory
+// and written through to storage.
 
 import * as store from './store.js';
 import { KANA, KANA_BY_CHAR, selectedKana } from './kana.js';
@@ -8,7 +9,7 @@ export const DEFAULT_SETTINGS = {
   wkToken: '',
   knownStage: 1,
   vocabContext: true,
-  includeKanji: true,
+  kanjiSource: 'wanikani', // wanikani | jlpt | grade | frequency | none
   hiragana: true,
   katakana: true,
   dakuten: true,
@@ -29,12 +30,42 @@ export const state = {
   sync: null, // { at, user, count }
   cards: new Map(),
   subjects: new Map(),
+  builtin: null, // data/kanji-info.json once loaded
 };
+
+export const KANJI_SOURCES = {
+  wanikani: 'Kanji you’ve started on WaniKani',
+  jlpt: 'JLPT order, N5 to N1 (2,211 kanji)',
+  grade: 'Japanese school order, grade 1 to secondary school (2,136 jōyō kanji)',
+  frequency: 'Most frequent first (2,501 kanji)',
+  none: 'No kanji, kana only',
+};
+
+export const isBuiltinSource = (src) => src === 'jlpt' || src === 'grade' || src === 'frequency';
+
+let builtinPromise = null;
+/** Load the built-in kanji lists (about 0.7 MB) the first time a built-in list is used. */
+export function ensureBuiltin() {
+  if (state.builtin) return Promise.resolve(state.builtin);
+  if (!builtinPromise) {
+    builtinPromise = fetch(new URL('../data/kanji-info.json', import.meta.url))
+      .then((r) => {
+        if (!r.ok) throw new Error(`kanji lists unavailable (${r.status})`);
+        return r.json();
+      })
+      .then((d) => { state.builtin = d; return d; })
+      .catch((err) => { builtinPromise = null; throw err; });
+  }
+  return builtinPromise;
+}
 
 export async function loadState() {
   const { persistent } = await store.initStore();
   state.persistent = persistent;
-  state.settings = { ...DEFAULT_SETTINGS, ...((await store.kvGet('settings')) || {}) };
+  const saved = (await store.kvGet('settings')) || {};
+  if (saved.kanjiSource === undefined && saved.includeKanji === false) saved.kanjiSource = 'none';
+  delete saved.includeKanji;
+  state.settings = { ...DEFAULT_SETTINGS, ...saved };
   state.sync = (await store.kvGet('sync')) || null;
   state.cards = new Map((await store.getAll('cards')).map((c) => [c.id, c]));
   state.subjects = new Map((await store.getAll('subjects')).map((s) => [s.char, s]));
@@ -63,10 +94,13 @@ export async function reconcileCards() {
   const s = state.settings;
   const wanted = new Map();
   for (const k of selectedKana(s)) wanted.set(cardId(k.kind, k.char), { char: k.char, kind: k.kind, order: k.order });
-  if (s.includeKanji) {
+  if (s.kanjiSource === 'wanikani') {
     for (const sub of state.subjects.values()) {
       if (sub.srsStage >= s.knownStage) wanted.set(cardId('kanji', sub.char), { char: sub.char, kind: 'kanji', order: kanjiOrder(sub) });
     }
+  } else if (isBuiltinSource(s.kanjiSource)) {
+    const data = await ensureBuiltin();
+    data.lists[s.kanjiSource].forEach((ch, i) => wanted.set(cardId('kanji', ch), { char: ch, kind: 'kanji', order: i }));
   }
   const changed = [];
   for (const [id, w] of wanted) {
@@ -184,12 +218,69 @@ export async function resetCard(card) {
   await store.put('cards', card);
 }
 
+function builtinLevelLabel(e, source) {
+  if (source === 'jlpt') return e.j ? `JLPT N${e.j}` : 'JLPT';
+  if (source === 'grade') return e.g && e.g <= 6 ? `Grade ${e.g}` : 'Secondary school';
+  return e.f ? `Frequency #${e.f}` : 'Frequency';
+}
+
+/**
+ * Meanings, readings and example words for a kanji from the current source, in one shape:
+ * { meanings, readings: {onyomi, kunyomi}, words: [{w, r, m}], levelLabel, url, urlLabel }.
+ */
+export function kanjiInfo(ch) {
+  const src = state.settings.kanjiSource;
+  if (isBuiltinSource(src) && state.builtin) {
+    const e = state.builtin.kanji[ch];
+    if (!e) return null;
+    return {
+      meanings: e.m,
+      readings: {
+        onyomi: e.on.map((reading) => ({ reading, primary: false })),
+        kunyomi: e.kun.map((reading) => ({ reading, primary: false })),
+      },
+      words: (e.w || []).map(([w, r, m]) => ({ w, r, m })),
+      levelLabel: builtinLevelLabel(e, src),
+      url: `https://jisho.org/search/${encodeURIComponent(`${ch} #kanji`)}`,
+      urlLabel: 'Look up on Jisho',
+    };
+  }
+  const sub = state.subjects.get(ch);
+  if (!sub) return null;
+  return {
+    meanings: sub.meanings,
+    readings: sub.readings || {},
+    words: sub.words || [],
+    levelLabel: `Level ${sub.level}`,
+    url: sub.url,
+    urlLabel: 'Open on WaniKani',
+  };
+}
+
+/** Whether a kanji counts as one you know (for the same-meaning check). */
+export function isKnownKanji(ch) {
+  if (state.settings.kanjiSource === 'wanikani') return (state.subjects.get(ch)?.srsStage ?? 0) >= 1;
+  return !!state.cards.get(cardId('kanji', ch))?.introducedAt;
+}
+
+/** Group used by the character sheet. */
+export function groupFor(card) {
+  if (card.kind !== 'kanji') return card.kind === 'hiragana' ? { key: 'a', label: 'Hiragana' } : { key: 'b', label: 'Katakana' };
+  const src = state.settings.kanjiSource;
+  if (isBuiltinSource(src) && state.builtin) {
+    const e = state.builtin.kanji[card.char] || {};
+    if (src === 'jlpt') return { key: `j${6 - (e.j || 0)}`, label: e.j ? `Kanji, JLPT N${e.j}` : 'Kanji' };
+    if (src === 'grade') return e.g <= 6 ? { key: `g${e.g}`, label: `Kanji, grade ${e.g}` } : { key: 'g8', label: 'Kanji, secondary school' };
+    const band = Math.floor(((e.f || 2501) - 1) / 250);
+    return { key: `f${String(band).padStart(2, '0')}`, label: `Kanji, frequency ${band * 250 + 1}–${(band + 1) * 250}` };
+  }
+  const lvl = state.subjects.get(card.char)?.level ?? 0;
+  return { key: `k${String(lvl).padStart(2, '0')}`, label: lvl ? `Kanji, level ${lvl}` : 'Kanji' };
+}
+
 /** Prompt information for a card. */
 export function promptFor(card) {
-  if (card.kind === 'kanji') {
-    const s = state.subjects.get(card.char);
-    return { kind: 'kanji', subject: s || null };
-  }
+  if (card.kind === 'kanji') return { kind: 'kanji', subject: kanjiInfo(card.char) };
   return { kind: card.kind, kana: KANA_BY_CHAR.get(card.char) };
 }
 

@@ -4,7 +4,8 @@
 > affiliated with or endorsed by WaniKani or Tofugu LLC.
 
 A practice notebook for writing Japanese by hand. You write kana and the kanji you've
-started on WaniKani with a mouse, finger or stylus. Each attempt is graded stroke by
+started on WaniKani, or from built-in JLPT, school-grade or frequency lists, with a
+mouse, finger or stylus. Each attempt is graded stroke by
 stroke against KanjiVG, checked for legibility with the KanjiCanvas recognizer, and
 scheduled with FSRS spaced repetition.
 
@@ -19,6 +20,13 @@ and the only network calls go to WaniKani's API.
   (lessons done, Guru and up, and so on), so you never see kanji you haven't studied.
   It also pulls vocabulary you know, so a prompt can show a word with the kanji blanked
   out (□人, ひとり) to tell apart kanji that share a meaning.
+- **Built-in kanji lists, no WaniKani needed.** Instead of WaniKani you can study kanji in
+  JLPT order (N5 to N1, 2,211 kanji), Japanese school order (grade 1 through secondary
+  school, the 2,136 jōyō kanji) or most-frequent-first (2,501 kanji). Meanings and readings
+  come from KANJIDIC2, and example words from JMdict. Progress is kept per character, so
+  switching between WaniKani and a list keeps what you've learned. The JLPT has published
+  no official kanji lists since 2010; these levels are the widely used unofficial ones by
+  Jonathan Waller.
 - **Kana.** Hiragana and katakana, with or without dakuten. Each set can be turned off.
 - **Lessons.** For each new character you watch an animated stroke-order model, trace
   it over a guide, then write the whole batch from memory. That first quiz starts the
@@ -104,6 +112,8 @@ support it. Kakitori is free and stays free.
 
 ## Connecting WaniKani
 
+WaniKani is optional: Settings → Kanji to study also offers the built-in lists.
+
 1. On WaniKani, open Settings → API Tokens
    (https://www.wanikani.com/settings/personal_access_tokens) and create a token. The
    default read-only permissions are enough.
@@ -174,6 +184,7 @@ js/views/*.js                Today, Characters, Settings, study sessions
 vendor/                      ts-fsrs and the KanjiCanvas recognition core (with licenses)
 data/strokes/*.json          KanjiVG stroke paths, one shard per 256 code points
 data/kc-refs.json            KanjiCanvas reference patterns plus kana
+data/kanji-info.json         built-in kanji lists with meanings, readings and example words
 tools/                       scripts that rebuild data/ from KanjiVG and KanjiCanvas
 tests/                       Playwright tests: synthetic handwriting and full flows with a mocked API
 fonts/, css/fonts.css        Klee One and Zen Kaku Gothic New, bundled for offline use
@@ -189,6 +200,9 @@ python3 tools/build_strokes.py path/to/kanjivg/kanji data/strokes
 python3 tools/build_refs.py path/to/kanjicanvas/docs/resources/javascript/ref-patterns.js \
   path/to/kanjicanvas/hiragana path/to/kanjicanvas/katakana data/kc-refs.json
 ```
+
+The built-in kanji lists are rebuilt with `tools/build_kanji_info.py`; its header lists the
+three input files and where they come from.
 
 After changing data/ or fonts/, run `python3 tools/build_precache.py .` (fonts come
 from the `@fontsource/klee-one` and `@fontsource/zen-kaku-gothic-new` npm packages, via
@@ -207,6 +221,8 @@ These parts aren't covered by the MIT license and keep their own terms:
 | KanjiCanvas recognition core and reference patterns | `vendor/kanjicanvas-core.js`, `data/kc-refs.json` | MIT, with a required link back to the project (`vendor/kanjicanvas.LICENSE`) |
 | ts-fsrs scheduler | `vendor/ts-fsrs.js` | MIT (`vendor/ts-fsrs.LICENSE`) |
 | Klee One and Zen Kaku Gothic New fonts | `fonts/` | SIL Open Font License 1.1 (`fonts/*-OFL.txt`) |
+| Built-in kanji lists: KANJIDIC2 meanings, readings, grades and frequency ranks, and JMdict example words | `data/kanji-info.json` | CC BY-SA 4.0 ([EDRDG license](https://www.edrdg.org/edrdg/licence.html)); see `data/kanji-info-README.md` |
+| JLPT levels | `data/kanji-info.json` | CC BY, Jonathan Waller ([tanos.co.uk](https://www.tanos.co.uk/jlpt/)) |
 | WaniKani meanings, readings and vocabulary | not in this repository: fetched from each user's own account | © Tofugu LLC, under [WaniKani's terms](https://www.wanikani.com/terms) |
 
 ## Credits and licenses
@@ -222,6 +238,13 @@ These parts aren't covered by the MIT license and keep their own terms:
   recognition functions are adapted in `vendor/kanjicanvas-core.js`.
 - Scheduling: [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), MIT
   (`vendor/ts-fsrs.LICENSE`).
+- Built-in kanji lists: [KANJIDIC2](https://www.edrdg.org/wiki/index.php/KANJIDIC_Project)
+  and [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html) by the Electronic Dictionary
+  Research and Development Group, used under its
+  [license](https://www.edrdg.org/edrdg/licence.html) (CC BY-SA 4.0). JLPT levels from
+  [Jonathan Waller's JLPT lists](https://www.tanos.co.uk/jlpt/), CC BY. KANJIDIC's
+  frequency rankings are by Jack Halpern, whose terms prohibit commercial use of the
+  frequency numbers without his written permission.
 - Kanji meanings, readings and vocabulary come from your own WaniKani account through
   its API and aren't bundled. That content is © Tofugu LLC and is covered by WaniKani's
   terms, not by this project's license.

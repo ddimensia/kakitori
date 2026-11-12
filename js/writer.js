@@ -7,7 +7,7 @@ import { recognizeStrokes } from './recognizer.js';
 import { StrokePlayer, glyphPaths, hintMarkup } from './glyphview.js';
 import { promptMarkup } from './prompt.js';
 import { preview, newSrsCard, formatInterval } from './srs.js';
-import { state } from './state.js';
+import { state, kanjiInfo, isKnownKanji } from './state.js';
 import { esc, markSvg, MARK_NAMES, plural } from './ui.js';
 
 const VERDICTS = {
@@ -190,9 +190,9 @@ export class Writer {
   findAlternate(rec) {
     if (!rec || rec.rank === 0 || !rec.candidates.length || this.card.kind !== 'kanji') return null;
     const top = rec.candidates[0][0];
-    const other = state.subjects.get(top);
-    const mine = state.subjects.get(this.card.char);
-    if (!other || !mine || !(other.srsStage >= 1)) return null;
+    const other = kanjiInfo(top);
+    const mine = kanjiInfo(this.card.char);
+    if (!other || !mine || !isKnownKanji(top)) return null;
     const a = new Set(mine.meanings.map((m) => m.toLowerCase()));
     const shared = other.meanings.find((m) => a.has(m.toLowerCase()));
     return shared ? { char: top, meaning: shared } : null;

@@ -8,7 +8,7 @@
 // App files are network-first, so updates arrive when the server is reachable.
 // Data and fonts are cache-first. WaniKani API requests are never cached.
 
-const VERSION = '4';
+const VERSION = '5';
 const APP_CACHE = `kakitori-app-${VERSION}`;
 const SHELL = [
   './',
