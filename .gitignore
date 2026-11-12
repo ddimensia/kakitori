@@ -1,0 +1,5 @@
+# Test output and local build files
+shots/
+__pycache__/
+*.zip
+.DS_Store
