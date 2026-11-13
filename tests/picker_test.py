@@ -80,7 +80,7 @@ with sync_playwright() as p:
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.on('console', lambda m: errors.append(m.text) if m.type == 'error' and 'TUNNEL' not in m.text else None)
-    page.goto(BASE + '#today'); page.wait_for_selector('.today')
+    page.goto(BASE + '#welcome'); page.click('.w-hero .w-cta'); page.wait_for_selector('.today')
     kana = page.evaluate(KANA_JS)
     print('fresh:', page.evaluate(STATE), '| lessons buttons:', lessons_actions(page))
 

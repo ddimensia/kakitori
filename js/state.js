@@ -22,6 +22,7 @@ export const DEFAULT_SETTINGS = {
   showStrokeCount: false,
   penOnly: true,
   autoSyncHours: 6,
+  welcomed: false, // has seen the welcome page
 };
 
 export const state = {
@@ -69,8 +70,16 @@ export async function loadState() {
   state.sync = (await store.kvGet('sync')) || null;
   state.cards = new Map((await store.getAll('cards')).map((c) => [c.id, c]));
   state.subjects = new Map((await store.getAll('subjects')).map((s) => [s.char, s]));
+  // People who used the app before the welcome page existed go straight to Today.
+  if (saved.welcomed === undefined && (Object.keys(saved).length || [...state.cards.values()].some((c) => c.introducedAt))) state.settings.welcomed = true;
   configureSrs(state.settings);
   await reconcileCards();
+}
+
+export async function markWelcomed() {
+  if (state.settings.welcomed) return;
+  state.settings.welcomed = true;
+  await store.kvSet('settings', state.settings);
 }
 
 export async function saveSettings(patch) {

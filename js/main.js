@@ -1,6 +1,6 @@
 // App shell: routing, sync orchestration and session start-up.
 
-import { state, loadState, applySync, dueCards, lessonQueue } from './state.js';
+import { state, loadState, applySync, dueCards, lessonQueue, markWelcomed } from './state.js';
 import { fetchKnownKanji } from './wanikani.js';
 import { Session } from './session.js';
 import { retrievability, State } from './srs.js';
@@ -9,6 +9,7 @@ import { renderToday } from './views/today.js';
 import { renderCharacters } from './views/characters.js';
 import { renderSettings } from './views/settings.js';
 import { renderLessonPicker } from './views/lessons.js';
+import { renderWelcome } from './views/welcome.js';
 import { runSession, runLessons } from './views/study.js';
 import { toast } from './ui.js';
 
@@ -154,6 +155,10 @@ function route() {
   setKeys(null);
   let name = location.hash.slice(1) || 'today';
   if (name === 'study' && !pendingStudy) { history.replaceState(null, '', '#today'); name = 'today'; }
+  // A first visit opens on the welcome page. Opening any other page (leaving the welcome page,
+  // or arriving by a direct link) means it's no longer a first visit.
+  if (lastRoute === null && name === 'today' && !state.settings.welcomed) { history.replaceState(null, '', '#welcome'); name = 'welcome'; }
+  if (name !== 'welcome') markWelcomed();
   if (name !== lastRoute) window.scrollTo(0, 0); // new page starts at the top; refreshes keep position
   lastRoute = name;
   setNav(name);
@@ -165,6 +170,7 @@ function route() {
   } else if (name === 'characters') renderCharacters(root, viewOpts());
   else if (name === 'settings') renderSettings(root, viewOpts());
   else if (name === 'lessons') renderLessonPicker(root, viewOpts());
+  else if (name === 'welcome') cleanup = renderWelcome(root);
   else {
     if (name !== 'today') history.replaceState(null, '', '#today');
     setNav('today');

@@ -297,6 +297,55 @@ button.cell:focus-visible { z-index: 2; }
 .level-name { font-weight: 500; }
 .level-help { color: var(--ink-soft); font-size: var(--step--1); }
 
+/* ---------- Welcome ---------- */
+
+.welcome { max-width: 1040px; }
+.welcome h2 { font-size: var(--step-2); }
+.welcome section + section { border-top: 1px solid var(--rule); padding-top: 2.25rem; margin-top: 2.75rem; }
+
+.w-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2rem 3.5rem; align-items: center; padding-top: 1rem; }
+.w-hero h1 { display: grid; gap: 0.35rem; }
+.w-title { font-size: clamp(3.4rem, 8.5vw, 6.25rem); font-weight: 600; letter-spacing: 0.06em; line-height: 1; }
+.w-name { font-size: var(--step-2); font-weight: 500; color: var(--ink-soft); letter-spacing: 0.02em; }
+.w-lead { font-size: var(--step-2); line-height: 1.5; max-width: 30em; margin: 1.5rem 0 1.75rem; }
+.w-actions { margin: 0 0 0.75rem; }
+.w-cta { font-size: var(--step-1); padding: 0.8rem 1.6rem; }
+.w-note { color: var(--ink-soft); font-size: var(--step--1); margin: 0; }
+
+.w-demo { justify-self: center; display: grid; justify-items: center; gap: 0.75rem; width: min(340px, 100%); }
+.w-square { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 0; background: var(--sheet); cursor: pointer; }
+.w-square:focus-visible { outline-offset: 4px; }
+.w-player, .w-player svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.w-demo .stroke-player .stroke-num { font-size: 5px; }
+.w-caption { margin: 0; color: var(--ink-soft); font-size: var(--step--1); }
+
+.w-steps ol { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem 1.75rem; }
+.w-step h3 { font-size: var(--step-1); font-weight: 500; margin: 1rem 0 0.35rem; display: flex; gap: 0.5rem; align-items: baseline; }
+.w-step-n { font-family: var(--font-hand); color: var(--pen); font-weight: 600; }
+.w-step p { margin: 0; color: var(--ink-soft); }
+.w-step-sq { position: relative; width: min(100%, 150px); aspect-ratio: 1; background: var(--sheet); }
+.w-step-sq.is-model .shadow, .w-step-sq.is-fading .shadow { display: none; }
+.w-step-sq.is-fading .live { opacity: 0.22; }
+.w-step-sq .mark-slot { width: 34%; }
+.w-step-sq .stroke-num { font-size: 8.5px; }
+
+.w-more { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 3.5rem; }
+.w-more ul { margin: 1rem 0 0; padding-left: 1.1rem; max-width: 60ch; }
+.w-more li { margin-bottom: 0.6rem; }
+.w-more li::marker { color: var(--rule); }
+
+.w-end { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
+
+body[data-view="welcome"] .site-foot a[href="#welcome"] { display: none; }
+.site-foot a + a { margin-left: 1rem; }
+
+@media (max-width: 860px) {
+  .w-hero { grid-template-columns: 1fr; }
+  .w-demo { justify-self: start; width: min(280px, 80vw); }
+  .w-steps ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .w-more { grid-template-columns: 1fr; }
+}
+
 /* ---------- Characters page ---------- */
 
 .filters { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center; margin-bottom: 0.75rem; }

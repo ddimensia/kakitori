@@ -62,6 +62,9 @@ and the only network calls go to WaniKani's API.
   session, without changing the schedule.
 - **Undo last grade**, a seven-day forecast, dark mode, offline support once installed,
   and backup/restore to a JSON file.
+- **Welcome page.** First-time visitors see a short page explaining what Kakitori is, with a
+  Get started button. After that the app opens on Today; the footer's About link brings the
+  page back.
 - **Works offline** as a Chrome extension or an installed web app. Fonts, stroke data and
   the recognizer are bundled.
 

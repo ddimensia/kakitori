@@ -25,8 +25,8 @@ with sync_playwright() as p:
     page = b.new_page(service_workers='block')
     errs = []
     page.on('pageerror', lambda e: errs.append(str(e)))
-    page.goto(BASE + '#today')
-    page.wait_for_selector('.today')
+    page.goto(BASE + '#welcome')
+    page.wait_for_selector('.welcome')
     res = page.evaluate(js + '\nrunGradingTests(' + json.dumps(variants, ensure_ascii=False) + ', ' + json.dumps(strictness) + ')')
     b.close()
 
