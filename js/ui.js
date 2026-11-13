@@ -4,14 +4,27 @@ export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 let toastTimer = null;
-export function toast(msg, { error = false, ms = 3500 } = {}) {
+/** Brief status message. `action` adds a button, e.g. { label: 'Undo', onClick }. */
+export function toast(msg, { error = false, ms = 3500, action = null } = {}) {
   const el = document.getElementById('toast');
   if (!el) return;
-  el.textContent = msg;
+  el.replaceChildren(document.createTextNode(msg));
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'toast-action';
+    b.textContent = action.label;
+    b.addEventListener('click', () => {
+      el.classList.remove('is-on', 'has-action');
+      action.onClick();
+    }, { once: true });
+    el.append(b);
+  }
   el.classList.toggle('is-error', error);
+  el.classList.toggle('has-action', !!action);
   el.classList.add('is-on');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('is-on'), ms);
+  toastTimer = setTimeout(() => el.classList.remove('is-on', 'has-action'), action ? Math.max(ms, 8000) : ms);
 }
 
 /** Modal confirm built on <dialog>. Resolves true when confirmed. */

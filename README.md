@@ -47,6 +47,13 @@ and the only network calls go to WaniKani's API.
 - **Characters page.** Every character on a notebook grid, shaded by memory strength.
   Select one for its stroke order, schedule and stats, or to practice it, suspend it,
   or reset it.
+- **Mark characters you already know.** Select characters on the Characters page (one at
+  a time, a whole group such as all hiragana, or everything shown) and choose how well you
+  know them: "Recognize it, still shaky", "Know it", "Know it well" or "Could write it in
+  my sleep". They skip lessons and go straight into reviews, with first reviews spread
+  over 2 days to 3 months depending on the level, so a set marked together doesn't all
+  come back at once. You can also do this from a character's detail dialog, and undo right
+  after.
 - **Free practice.** You can practice your ten weakest characters, or misses from a
   session, without changing the schedule.
 - **Undo last grade**, a seven-day forecast, dark mode, offline support once installed,

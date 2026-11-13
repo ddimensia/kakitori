@@ -247,6 +247,56 @@ button.cell:focus-visible { z-index: 2; }
 .legend li { display: flex; align-items: center; gap: 0.45rem; }
 .legend .swatch { --c: 24px; margin: 0; cursor: default; }
 
+/* ---------- Selecting and marking as known ---------- */
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sheet-group h3 .group-select { margin-left: 0.8rem; font-size: var(--step--1); font-weight: 400; }
+.cell.is-selected { background-color: var(--rule-soft); box-shadow: inset 0 0 0 2px var(--cover); z-index: 1; }
+.cell.is-selected::before {
+  content: "✓";
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--cover);
+  font-weight: 700;
+}
+.is-selecting .cell { cursor: copy; }
+.select-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  margin-top: 1rem;
+  padding: 0.75rem 0;
+  background: var(--paper);
+  border-top: 2px solid var(--ink);
+}
+.select-bar .spacer { flex: 1; }
+.select-count { margin: 0; font-weight: 500; min-width: 11ch; }
+
+.familiar { max-width: min(32rem, calc(100vw - 2rem)); }
+.familiar .levels { border: 0; padding: 0; margin: 1rem 0; display: grid; gap: 0.4rem; }
+.level {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.7rem;
+  align-items: baseline;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--rule);
+  border-radius: 3px;
+  background: var(--sheet);
+  cursor: pointer;
+}
+.level:has(input:checked) { border-color: var(--cover); box-shadow: inset 0 0 0 1px var(--cover); }
+.level input { accent-color: var(--cover); grid-row: span 2; margin: 0; align-self: center; }
+.level-name { font-weight: 500; }
+.level-help { color: var(--ink-soft); font-size: var(--step--1); }
+
 /* ---------- Characters page ---------- */
 
 .filters { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center; margin-bottom: 0.75rem; }
@@ -480,6 +530,8 @@ body[data-view="study"] .site-foot { display: none; }
   z-index: 100;
 }
 #toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+#toast.has-action.is-on { pointer-events: auto; display: flex; align-items: center; gap: 1rem; }
+.toast-action { font: inherit; font-weight: 700; background: none; border: 0; color: inherit; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; padding: 0.2rem 0; }
 #toast.is-error { background: var(--pen); color: #fff; }
 
 /* ---------- Small screens ---------- */

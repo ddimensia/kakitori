@@ -3,7 +3,7 @@
 
 import * as store from './store.js';
 import { KANA, KANA_BY_CHAR, selectedKana } from './kana.js';
-import { configureSrs, newSrsCard, review, State } from './srs.js';
+import { configureSrs, newSrsCard, review, knownSrsCard, State } from './srs.js';
 
 export const DEFAULT_SETTINGS = {
   wkToken: '',
@@ -150,9 +150,10 @@ export function dueCards(now = Date.now()) {
   return [...state.cards.values()].filter((c) => studyable(c) && c.introducedAt && c.due !== null && c.due <= now);
 }
 
+/** Characters started through lessons today (ones marked as already known don't count). */
 export function introducedToday() {
   const t = startOfToday();
-  return [...state.cards.values()].filter((c) => c.introducedAt && c.introducedAt >= t).length;
+  return [...state.cards.values()].filter((c) => c.introducedAt && c.introducedAt >= t && !c.markedKnown).length;
 }
 
 /** New cards in lesson order, honouring the daily limit. */
@@ -205,6 +206,56 @@ export async function undoRating(card, undo) {
   if (undo.logId != null) await store.remove('log', undo.logId);
 }
 
+/**
+ * How well you already know a character. `days` is the starting memory stability: first
+ * reviews are spread between about a fifth of it and all of it, so a whole set marked at
+ * once comes back gradually.
+ */
+export const FAMILIARITY = [
+  { id: 'shaky', label: 'Recognize it, still shaky', days: 2, difficulty: 5, help: 'First review in 1–2 days' },
+  { id: 'know', label: 'Know it', days: 10, difficulty: 3, help: 'First reviews spread over the next 10 days' },
+  { id: 'well', label: 'Know it well', days: 30, difficulty: 2.5, help: 'First reviews spread over the next month' },
+  { id: 'cold', label: 'Could write it in my sleep', days: 90, difficulty: 2, help: 'First reviews spread over the next 3 months' },
+];
+
+/**
+ * Mark cards as known at a familiarity level, skipping their lessons.
+ * Cards already studied are left alone unless `overwrite` is set.
+ * @returns {{count:number, undo:()=>Promise<void>}}
+ */
+export async function markKnown(cards, levelId, { overwrite = false } = {}) {
+  const lvl = FAMILIARITY.find((f) => f.id === levelId) || FAMILIARITY[1];
+  const DAY = 86400000;
+  const now = Date.now();
+  const stability = Math.min(lvl.days, state.settings.maxInterval);
+  const lo = Math.max(1, stability * 0.2);
+  const snapshots = [];
+  const changed = [];
+  for (const card of cards) {
+    if (card.introducedAt && !overwrite) continue;
+    snapshots.push(JSON.parse(JSON.stringify(card)));
+    const due = now + (lo + Math.random() * Math.max(0, stability - lo)) * DAY;
+    card.srs = knownSrsCard({ stability, difficulty: lvl.difficulty, due, now });
+    card.due = due;
+    card.introducedAt = card.introducedAt || now;
+    card.markedKnown = { level: lvl.id, at: now };
+    changed.push(card);
+  }
+  await store.putMany('cards', changed);
+  return {
+    count: changed.length,
+    undo: async () => {
+      for (const snap of snapshots) {
+        const card = state.cards.get(snap.id);
+        if (!card) continue;
+        for (const k of Object.keys(card)) delete card[k];
+        Object.assign(card, snap);
+      }
+      await store.putMany('cards', snapshots.map((s) => state.cards.get(s.id)).filter(Boolean));
+    },
+  };
+}
+
 export async function setSuspended(card, v) {
   card.suspended = v;
   await store.put('cards', card);
@@ -215,6 +266,7 @@ export async function resetCard(card) {
   card.srs = null;
   card.due = null;
   card.lastScore = null;
+  delete card.markedKnown;
   await store.put('cards', card);
 }
 

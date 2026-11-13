@@ -38,6 +38,28 @@ export function newSrsCard(now = new Date()) {
   return toPlain(createEmptyCard(now));
 }
 
+const DAY = 86400000;
+
+/**
+ * A card for a character you already know: it starts in long-term review with the given
+ * memory stability (in days; by FSRS's definition, the gap at which recall drops to 90%)
+ * and is next due at `due`. Later reviews are scheduled by FSRS as usual.
+ */
+export function knownSrsCard({ stability, difficulty, due, now = Date.now() }) {
+  return {
+    due: new Date(due).toISOString(),
+    stability,
+    difficulty,
+    elapsed_days: 0,
+    scheduled_days: Math.max(1, Math.round((due - now) / DAY)),
+    reps: 1,
+    lapses: 0,
+    learning_steps: 0,
+    state: State.Review,
+    last_review: new Date(now).toISOString(),
+  };
+}
+
 /** Due time in ms for each rating, without changing the card. */
 export function preview(srsCard, now = new Date()) {
   const p = scheduler.repeat(toInput(srsCard), now);
