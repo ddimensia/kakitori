@@ -61,7 +61,7 @@ export function renderWelcome(view) {
           <h2>Your notebook stays with you</h2>
           <ul>
             <li>No account and no server. Progress is saved in this browser, and you can back it up to a file.</li>
-            <li>Install it from Chrome’s address bar, or add it as a Chrome extension, and it works offline.</li>
+            <li>Install it as an app from your browser, or add it to your home screen, and it works offline.</li>
             <li>Write with a stylus, a finger or a mouse.</li>
           </ul>
         </div>

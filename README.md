@@ -9,9 +9,9 @@ mouse, finger or stylus. Each attempt is graded stroke by
 stroke against KanjiVG, checked for legibility with the KanjiCanvas recognizer, and
 scheduled with FSRS spaced repetition.
 
-Everything runs in the browser, as a Chrome extension, an installed web app or a plain
-web page. There is no server and no account. Your progress is stored in the browser,
-and the only network calls go to WaniKani's API.
+Everything runs in the browser, as an installed web app or a plain web page. There is
+no server and no account. Your progress is stored in the browser, and the only network
+calls go to WaniKani's API.
 
 ## What it does
 
@@ -65,32 +65,29 @@ and the only network calls go to WaniKani's API.
 - **Welcome page.** First-time visitors see a short page explaining what Kakitori is, with a
   Get started button. After that the app opens on Today; the footer's About link brings the
   page back.
-- **Works offline** as a Chrome extension or an installed web app. Fonts, stroke data and
+- **Works offline** once installed as a web app. Fonts, stroke data and
   the recognizer are bundled.
 
 ## Running it
 
-Pick one of three ways. All of them keep working with no internet connection once set
-up. Only WaniKani sync needs a connection.
+Use it online or run it from your own computer. Either way it keeps working with no
+internet connection once installed. Only WaniKani sync needs a connection.
 
-### 1. Chrome extension (simplest, no server)
+### 1. Online (GitHub Pages or any HTTPS host)
 
-1. Unzip the folder somewhere permanent, such as Documents/kakitori.
-2. In Chrome, open `chrome://extensions` and turn on Developer mode (top right).
-3. Click Load unpacked and choose the `kakitori` folder, the one containing
-   `manifest.json`.
-4. Kakitori opens in its own window. Later, open it from the toolbar's puzzle-piece
-   menu (pin it for one click).
+1. Create a GitHub repository and upload the contents of this folder, with
+   `index.html` at the top level.
+2. In the repository, go to Settings → Pages and choose Deploy from a branch, using
+   `main` and `/ (root)`.
+3. Open the Pages URL (`https://<username>.github.io/<repository>/`). To install it,
+   click the install icon at the right of Chrome's or Edge's address bar, or on an
+   iPad or iPhone tap Share → Add to Home Screen in Safari.
 
-Everything is bundled: stroke data, the recognizer and the fonts. The extension has
-unlimited storage, so Chrome won't clear your progress to free space. To update,
-replace the folder's files and click the reload icon on the extension's card. Your
-progress stays, because it's tied to the extension's ID and the ID stays the same
-while the folder path does.
+On first load the app stores all of its files and data, about 15 MB, so the installed
+app keeps working offline. It picks up updates the next time it's opened online.
+Netlify Drop (drag the folder onto app.netlify.com/drop) works too.
 
-This also works in Edge, Brave and other Chromium browsers, and on ChromeOS.
-
-### 2. Installed Chrome app (PWA)
+### 2. On your own computer
 
 ```sh
 cd kakitori
@@ -98,25 +95,11 @@ python3 -m http.server 8000
 ```
 
 Open http://localhost:8000 in Chrome and click the install icon at the right of the
-address bar (or ⋮ → Cast, save and share → Install page as app). On first load the app
-stores all of its files and data, about 15 MB, so the installed app keeps working after
-you stop the server and go offline. Run the server again only to pick up an update.
+address bar (or ⋮ → Cast, save and share → Install page as app). The installed app
+keeps working after you stop the server and go offline. Run the server again only to
+pick up an update.
 
-### 3. Hosted, for iPad or phone
-
-Host the folder somewhere with HTTPS and install it from there. GitHub Pages is free:
-
-1. Create a GitHub repository and upload the contents of this folder, with
-   `index.html` at the top level.
-2. In the repository, go to Settings → Pages and choose Deploy from a branch, using
-   `main` and `/ (root)`.
-3. Open the Pages URL (`https://<username>.github.io/<repository>/`) in Safari on the
-   iPad and tap Share → Add to Home Screen. In Chrome on a computer, use the install
-   icon in the address bar.
-
-Netlify Drop (drag the folder onto app.netlify.com/drop) works too.
-
-Progress is kept separately by each extension, installed app and site address. To move
+Progress is kept separately by each installed app and site address. To move
 it, use Settings → Save backup file, then Restore from backup on the other one.
 
 ## Supporting the project
@@ -204,7 +187,6 @@ tests/                       Playwright tests: synthetic handwriting and full fl
 fonts/, css/fonts.css        Klee One and Zen Kaku Gothic New, bundled for offline use
 sw.js, precache.json         offline cache for the installed web app
 manifest.webmanifest         web app manifest (install as an app, add to home screen)
-manifest.json, extension/    Chrome extension manifest and toolbar button
 ```
 
 To rebuild the data from fresh checkouts of KanjiVG and KanjiCanvas:
@@ -221,7 +203,7 @@ three input files and where they come from.
 After changing data/ or fonts/, run `python3 tools/build_precache.py .` (fonts come
 from the `@fontsource/klee-one` and `@fontsource/zen-kaku-gothic-new` npm packages, via
 `tools/build_fonts.py`). After changing any app file, bump `VERSION` in `sw.js` so
-installed copies update. For the extension, also raise `version` in `manifest.json`.
+installed copies update.
 
 ## License
 
