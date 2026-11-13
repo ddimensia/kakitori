@@ -5,10 +5,11 @@
 //   kakitori-data-<version>  stroke data and fonts listed in precache.json (about 15 MB);
 //                            its version comes from tools/build_precache.py and changes
 //                            only when those files change, so app updates don't re-download it.
-// App files are network-first, so updates arrive when the server is reachable.
+// App files and data/kanji-info.json (rebuilt monthly) are network-first, so updates
+// arrive whenever the server is reachable.
 // Data and fonts are cache-first. WaniKani API requests are never cached.
 
-const VERSION = '8';
+const VERSION = '9';
 const APP_CACHE = `kakitori-app-${VERSION}`;
 const SHELL = [
   './',
@@ -45,6 +46,7 @@ const SHELL = [
   'vendor/ts-fsrs.js',
   'vendor/kanjicanvas-core.js',
   'data/kc-refs.json',
+  'data/kanji-info.json', // updated monthly, so it's fetched fresh like the app files
 ];
 
 async function dataCacheName() {
@@ -110,6 +112,6 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.includes('/data/') || url.pathname.includes('/fonts/')) event.respondWith(cacheFirst(req));
-  else event.respondWith(networkFirst(req));
+  const isData = (url.pathname.includes('/data/') && !url.pathname.endsWith('/kanji-info.json')) || url.pathname.includes('/fonts/');
+  event.respondWith(isData ? cacheFirst(req) : networkFirst(req));
 });

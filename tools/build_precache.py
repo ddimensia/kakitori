@@ -6,7 +6,7 @@ Usage: python3 tools/build_precache.py <app dir>
 import hashlib, json, os, sys
 
 app = sys.argv[1]
-files = ['data/kanji-info.json']
+files = []  # data/kanji-info.json is updated monthly, so sw.js keeps it with the app files instead
 for folder in ('data/strokes', 'fonts'):
     for fn in sorted(os.listdir(os.path.join(app, folder))):
         if fn.endswith(('.json', '.woff2')):

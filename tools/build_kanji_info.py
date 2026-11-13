@@ -2,20 +2,97 @@
 with meanings, readings and example words, for studying without WaniKani.
 
 Usage:
-  python3 tools/build_kanji_info.py KANJIS.json TANOS_KANJI_DIR VOCAB.json OUT.json
+  python3 tools/build_kanji_info.py KANJIDIC2.json JMDICT.json TANOS_KANJI_DIR JLPT_VOCAB_DIR OUT.json
 
 Inputs (data only; read, never executed):
-  KANJIS.json      KANJIDIC2 as JSON (npm package kanjidic2-json). EDRDG, CC BY-SA 4.0.
+  KANJIDIC2.json   kanjidic2-en-*.json from a jmdict-simplified release
+                   (github.com/scriptin/jmdict-simplified, rebuilt weekly from EDRDG's files).
+                   KANJIDIC2 is EDRDG, CC BY-SA 4.0.
+  JMDICT.json      jmdict-eng-*.json (the full English file, not "common") from the same release.
+                   JMdict is EDRDG, CC BY-SA 4.0.
   TANOS_KANJI_DIR  folder with n5_kanji.csv ... n1_kanji.csv (github.com/Bluskyo/JLPT_Vocabulary,
-                   data/kanji/parsedData), Jonathan Waller's JLPT lists, CC BY.
-  VOCAB.json       JMdict-derived word list with readings, glosses and JLPT tags (npm package
-                   kotobako-data, kotobako-static.json). JMdict is EDRDG, CC BY-SA 4.0.
+                   data/kanji/parsedData), Jonathan Waller's JLPT kanji lists, CC BY.
+  JLPT_VOCAB_DIR   folder with n1.csv ... n5.csv (github.com/jamsinclair/open-anki-jlpt-decks, src),
+                   JLPT vocabulary lists, MIT. Used only to favor JLPT words as examples.
+
+.github/workflows/update-kanji-data.yml runs this every month with the latest release, as
+the EDRDG licence asks for regular updates from the most recent data.
 """
-import csv, json, os, sys
+import csv, json, os, re, sys
 
-kanjidic_path, tanos_dir, vocab_path, out_path = sys.argv[1:5]
+kanjidic_path, jmdict_path, tanos_dir, vocab_dir, out_path = sys.argv[1:6]
 
-K = {k['literal']: k for k in json.load(open(kanjidic_path, encoding='utf-8'))}
+
+def load_kanjidic(path):
+    """KANJIDIC2 entries keyed by character, reduced to the fields used below."""
+    data = json.load(open(path, encoding='utf-8'))
+    out = {}
+    for ch in data['characters']:
+        misc = ch.get('misc') or {}
+        rm = ch.get('readingMeaning') or {}
+        readings, meanings = {'ja_on': [], 'ja_kun': []}, []
+        for g in rm.get('groups') or []:
+            for r in g.get('readings') or []:
+                if r['type'] in readings:
+                    readings[r['type']].append(r['value'])
+            meanings += [m['value'] for m in g.get('meanings') or [] if m.get('lang', 'en') == 'en']
+        out[ch['literal']] = {
+            'freq': misc.get('frequency'), 'grade': misc.get('grade'),
+            'strokeCounts': misc.get('strokeCounts') or [],
+            'readings': readings, 'meanings': {'en': meanings},
+        }
+    return out, {k: data.get(k) for k in ('version', 'dictDate', 'databaseVersion')}
+
+
+BAD_FORM = {'iK', 'oK', 'rK', 'sK', 'ik', 'ok', 'rk', 'sk'}  # irregular, outdated, rare, search-only
+
+
+def load_vocab(path, vocab_dir):
+    """JMdict words that are common or on a JLPT list: written form, reading, first gloss, JLPT level."""
+    jlpt = {}
+    for n in (1, 2, 3, 4, 5):
+        with open(os.path.join(vocab_dir, f'n{n}.csv'), encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                # Either field can hold alternatives: "行く,いく; ゆく"
+                for x in re.split(r'[;；、,]', row['expression']):
+                    for r in re.split(r'[;；、,]', row['reading']):
+                        x, r = (re.sub(r'[(（][^)）]*[)）]', '', t).strip(' 〜～') for t in (x, r))  # drop notes: "こす (みずを～)"
+                        if r.endswith('する') and not x.endswith('する'):
+                            r = r[:-2]  # suru verbs: "相談,そうだんする"
+                        jlpt[(x, r)] = max(jlpt.get((x, r), 0), n)  # a word on several lists counts at its easiest
+    data = json.load(open(path, encoding='utf-8'))
+    out = []
+    for e in data['words']:
+        kanji = [k for k in e['kanji'] if not BAD_FORM & set(k['tags'])] or e['kanji']
+        kana = [k for k in e['kana'] if not BAD_FORM & set(k['tags'])] or e['kana']
+        if not kana or not e['sense']:
+            continue
+        in_kana = not e['kanji'] or 'uk' in e['sense'][0]['misc']
+        # Match the list's spelling to this word's spellings. A kana spelling only counts for
+        # words usually written in kana, or every homophone (こう, かう...) would match.
+        forms = {k['text'] for k in e['kanji']} | ({k['text'] for k in e['kana']} if in_kana else set())
+        level = max((jlpt.get((x, k['text']), 0) for x in forms for k in e['kana']), default=0)
+        common = any(k['common'] for k in e['kanji'] + e['kana'])
+        if not (common or level):
+            continue
+        if kanji and not in_kana:
+            word = next((k for k in kanji if k['common']), kanji[0])['text']
+        else:
+            word = None  # usually written in kana
+        if word:
+            fits = [k for k in kana if '*' in k['appliesToKanji'] or word in k['appliesToKanji']] or kana
+        else:
+            fits = kana
+        reading = next((k for k in fits if k['common']), fits[0])['text']
+        word = word or reading
+        sense = next((s for s in e['sense'] if '*' in s['appliesToKanji'] or word in s['appliesToKanji']), e['sense'][0])
+        glosses = [g['text'] for g in sense['gloss']]
+        if glosses:
+            out.append({'word': word, 'reading': reading, 'meanings': glosses, 'jlpt': f'N{level}' if level else None})
+    return out, {k: data.get(k) for k in ('version', 'dictDate')}
+
+
+K, kanjidic_version = load_kanjidic(kanjidic_path)
 
 
 def is_kanji(c):
@@ -43,7 +120,7 @@ freq_order = sorted((c for c, k in K.items() if k.get('freq')), key=freq)
 chars = set(jlpt_order) | set(grade_order) | set(freq_order)
 
 # ---- Example words -------------------------------------------------------------
-vocab = json.load(open(vocab_path, encoding='utf-8'))['datasets']['vocab']
+vocab, jmdict_version = load_vocab(jmdict_path, vocab_dir)
 JLPT_RANK = {'N5': 0, 'N4': 1, 'N3': 2, 'N2': 3, 'N1': 4}
 candidates = {}
 for v in vocab:
@@ -118,6 +195,7 @@ out = {
              'Meanings, readings, school grades and frequency ranks: KANJIDIC2; example words: JMdict '
              '(both EDRDG, CC BY-SA 4.0, https://www.edrdg.org/edrdg/licence.html). '
              'JLPT levels: Jonathan Waller, tanos.co.uk, CC BY. This file is shared under CC BY-SA 4.0.',
+    'sources': {'kanjidic2': kanjidic_version, 'jmdict': jmdict_version},
     'lists': {'jlpt': jlpt_order, 'grade': grade_order, 'frequency': freq_order},
     'kanji': info,
 }

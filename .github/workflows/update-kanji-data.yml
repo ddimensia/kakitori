@@ -1,0 +1,86 @@
+# Rebuilds data/kanji-info.json every month from the latest KANJIDIC2 and JMdict.
+#
+# The EDRDG licence for KANJIDIC2 and JMdict asks software that uses them to have "a
+# procedure for regular updating of the data from the most recent versions available".
+# This is that procedure. The dictionaries come from jmdict-simplified, which converts
+# EDRDG's files to JSON and publishes a new release every Monday.
+#
+# A run commits only when the data changed and tools/check_kanji_info.py found nothing
+# wrong with it; otherwise it fails and leaves the current data in place. Its summary
+# shows what changed. Run it by hand from the Actions tab with "Run workflow".
+
+name: Update kanji data
+
+on:
+  schedule:
+    - cron: '23 10 2 * *' # 10:23 UTC on the 2nd of each month
+  workflow_dispatch:
+
+permissions:
+  contents: write # commit the updated file
+  pages: write # ask GitHub Pages to republish
+
+concurrency:
+  group: update-kanji-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the latest KANJIDIC2 and JMdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/src && cd /tmp/src
+          tag=$(gh release view --repo scriptin/jmdict-simplified --json tagName --jq .tagName)
+          echo "Using jmdict-simplified $tag"
+          echo "JMDICT_TAG=$tag" >> "$GITHUB_ENV"
+          gh release download "$tag" --repo scriptin/jmdict-simplified \
+            --pattern 'kanjidic2-en-*.json.zip' --pattern 'jmdict-eng-[0-9]*.json.zip'
+          for z in *.zip; do unzip -q "$z"; done
+          ls -l
+
+      - name: Download the JLPT lists
+        run: |
+          mkdir -p /tmp/src/tanos /tmp/src/jlpt-vocab
+          for n in 1 2 3 4 5; do
+            curl -fsSL -o "/tmp/src/tanos/n${n}_kanji.csv" \
+              "https://raw.githubusercontent.com/Bluskyo/JLPT_Vocabulary/main/data/kanji/parsedData/n${n}_kanji.csv"
+            curl -fsSL -o "/tmp/src/jlpt-vocab/n${n}.csv" \
+              "https://raw.githubusercontent.com/jamsinclair/open-anki-jlpt-decks/main/src/n${n}.csv"
+          done
+
+      - name: Rebuild data/kanji-info.json
+        run: |
+          python3 tools/build_kanji_info.py \
+            /tmp/src/kanjidic2-en-*.json /tmp/src/jmdict-eng-[0-9]*.json \
+            /tmp/src/tanos /tmp/src/jlpt-vocab /tmp/kanji-info.json
+
+      - name: Check the new data
+        run: |
+          set -o pipefail
+          python3 tools/check_kanji_info.py data/kanji-info.json /tmp/kanji-info.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and publish if anything changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp /tmp/kanji-info.json data/kanji-info.json
+          if git diff --quiet -- data/kanji-info.json; then
+            echo "The kanji data is already up to date." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update kanji data from KANJIDIC2 and JMdict (jmdict-simplified $JMDICT_TAG)" -- data/kanji-info.json
+          git pull --rebase --quiet
+          git push
+          # A push made with this workflow's token doesn't start a GitHub Pages build by
+          # itself, so request one. This fails harmlessly while Pages is off.
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" --silent \
+            && echo "Requested a GitHub Pages build." \
+            || echo "::notice::GitHub Pages isn't set up for this repository, so nothing was republished."

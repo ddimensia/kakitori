@@ -182,7 +182,7 @@ vendor/                      ts-fsrs and the KanjiCanvas recognition core (with 
 data/strokes/*.json          KanjiVG stroke paths, one shard per 256 code points
 data/kc-refs.json            KanjiCanvas reference patterns plus kana
 data/kanji-info.json         built-in kanji lists with meanings, readings and example words
-tools/                       scripts that rebuild data/ from KanjiVG and KanjiCanvas
+tools/                       scripts that rebuild data/ from KanjiVG, KanjiCanvas, KANJIDIC2 and JMdict
 tests/                       Playwright tests: synthetic handwriting and full flows with a mocked API
 fonts/, css/fonts.css        Klee One and Zen Kaku Gothic New, bundled for offline use
 sw.js, precache.json         offline cache for the installed web app
@@ -198,9 +198,15 @@ python3 tools/build_refs.py path/to/kanjicanvas/docs/resources/javascript/ref-pa
 ```
 
 The built-in kanji lists are rebuilt with `tools/build_kanji_info.py`; its header lists the
-three input files and where they come from.
+input files and where they come from. A GitHub Actions workflow
+(`.github/workflows/update-kanji-data.yml`) does this on the 2nd of every month with the
+latest KANJIDIC2 and JMdict, as their licence asks for regular updates. It commits only
+when the data changed and `tools/check_kanji_info.py` finds nothing wrong, then asks
+GitHub Pages to republish. Installed apps pick up the new file the next time they're
+opened online. To run it now, open the repository's Actions tab, choose Update kanji
+data and click Run workflow.
 
-After changing data/ or fonts/, run `python3 tools/build_precache.py .` (fonts come
+After changing data/strokes/ or fonts/, run `python3 tools/build_precache.py .` (fonts come
 from the `@fontsource/klee-one` and `@fontsource/zen-kaku-gothic-new` npm packages, via
 `tools/build_fonts.py`). After changing any app file, bump `VERSION` in `sw.js` so
 installed copies update.
