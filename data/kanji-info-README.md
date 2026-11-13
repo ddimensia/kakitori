@@ -24,5 +24,5 @@ readings at four on'yomi and five kun'yomi, and up to four example words chosen 
 CC BY-SA 4.0.
 
 The JLPT has published no official kanji lists since 2010; these levels are the widely
-used unofficial lists. KANJIDIC's frequency rankings come from Jack Halpern, whose terms
-prohibit commercial use of the frequency numbers without his written permission.
+used unofficial lists. The EDRDG license places no restriction on commercial use. KANJIDIC's
+SKIP codes, which are under Jack Halpern's own license, aren't included.

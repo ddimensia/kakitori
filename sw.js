@@ -9,7 +9,7 @@
 // arrive whenever the server is reachable.
 // Data and fonts are cache-first. WaniKani API requests are never cached.
 
-const VERSION = '9';
+const VERSION = '10';
 const APP_CACHE = `kakitori-app-${VERSION}`;
 const SHELL = [
   './',

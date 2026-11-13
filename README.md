@@ -104,8 +104,9 @@ it, use Settings → Save backup file, then Restore from backup on the other one
 
 ## Supporting the project
 
-If Kakitori helps you, the Sponsor button on the GitHub repository lists ways to
-support it. Kakitori is free and stays free.
+Kakitori is free and stays free. If it helps you, you can leave a tip on
+[Ko-fi](https://ko-fi.com/ddimensia), which is also linked from the app's footer and the Sponsor button on
+the GitHub repository.
 
 ## Connecting WaniKani
 
@@ -244,9 +245,9 @@ These parts aren't covered by the MIT license and keep their own terms:
   and [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html) by the Electronic Dictionary
   Research and Development Group, used under its
   [license](https://www.edrdg.org/edrdg/licence.html) (CC BY-SA 4.0). JLPT levels from
-  [Jonathan Waller's JLPT lists](https://www.tanos.co.uk/jlpt/), CC BY. KANJIDIC's
-  frequency rankings are by Jack Halpern, whose terms prohibit commercial use of the
-  frequency numbers without his written permission.
+  [Jonathan Waller's JLPT lists](https://www.tanos.co.uk/jlpt/), CC BY. The EDRDG license
+  places no restriction on commercial use. KANJIDIC's SKIP codes, which are under Jack
+  Halpern's own license, aren't used.
 - Kanji meanings, readings and vocabulary come from your own WaniKani account through
   its API and aren't bundled. That content is © Tofugu LLC and is covered by WaniKani's
   terms, not by this project's license.

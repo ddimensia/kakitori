@@ -6,6 +6,7 @@ import { StrokePlayer } from '../glyphview.js';
 import { markSvg } from '../ui.js';
 
 const REPO = 'https://github.com/ddimensia/kakitori';
+const TIP = 'https://ko-fi.com/ddimensia';
 
 const STEPS = [
   { title: 'Watch it written', text: 'An animation shows the order and direction of every stroke.' },
@@ -69,7 +70,8 @@ export function renderWelcome(view) {
 
       <section class="w-end">
         <a class="btn primary" href="#today">${cta}</a>
-        <p class="w-note">Kakitori is open source under the MIT license. <a href="${REPO}" target="_blank" rel="noopener">Source code on GitHub</a></p>
+        <p class="w-note">Kakitori is free and open source under the MIT license. <a href="${REPO}" target="_blank" rel="noopener">Source code on GitHub</a>
+          <br>If it helps you, you can <a href="${TIP}" target="_blank" rel="noopener">leave a tip on Ko-fi</a>.</p>
       </section>
     </article>`;
 

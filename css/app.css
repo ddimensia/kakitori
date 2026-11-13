@@ -337,7 +337,7 @@ button.cell:focus-visible { z-index: 2; }
 .w-end { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
 
 body[data-view="welcome"] .site-foot a[href="#welcome"] { display: none; }
-.site-foot a + a { margin-left: 1rem; }
+.site-foot a { white-space: nowrap; margin-right: 1rem; }
 
 @media (max-width: 860px) {
   .w-hero { grid-template-columns: 1fr; }
