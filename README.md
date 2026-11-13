@@ -30,7 +30,11 @@ and the only network calls go to WaniKani's API.
 - **Kana.** Hiragana and katakana, with or without dakuten. Each set can be turned off.
 - **Lessons.** For each new character you watch an animated stroke-order model, trace
   it over a guide, then write the whole batch from memory. That first quiz starts the
-  review schedule.
+  review schedule. New characters are limited per day (10 by default).
+- **Choose lessons.** Like WaniKani's Advanced lesson picker: from the Today page you can
+  pick any characters you haven't started, one at a time, by group, or the next batch in
+  order, and learn them now, past the daily limit. They're taught in batches, with a quiz
+  after each and an option to continue with the next.
 - **Reviews.** You get the prompt (meaning and readings, or romaji) and write the
   character in a practice square. After you check it you get:
   - an overlay of your strokes on the model: green for good, amber for rough, red for

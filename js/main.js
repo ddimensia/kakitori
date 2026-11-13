@@ -8,6 +8,7 @@ import { warmRecognizer } from './recognizer.js';
 import { renderToday } from './views/today.js';
 import { renderCharacters } from './views/characters.js';
 import { renderSettings } from './views/settings.js';
+import { renderLessonPicker } from './views/lessons.js';
 import { runSession, runLessons } from './views/study.js';
 import { toast } from './ui.js';
 
@@ -51,11 +52,35 @@ function startReviews() {
   startStudy((root) => runSession(root, new Session(cards, { scheduled: true, title: 'Reviews' }), studyCtx));
 }
 
+const notStarted = (c) => c.active && !c.suspended && !c.introducedAt;
+
+/**
+ * Run lessons one batch at a time. `nextCards()` gives the characters still to come; after each
+ * batch's quiz the summary offers to continue with them.
+ */
+function runLessonBatches(nextCards) {
+  const cards = nextCards().slice(0, state.settings.lessonBatch);
+  if (!cards.length) { toast('No new characters right now.'); return; }
+  const nextLessons = () => {
+    const rest = nextCards();
+    return rest.length ? { count: rest.length, batch: Math.min(rest.length, state.settings.lessonBatch), start: () => runLessonBatches(nextCards) } : null;
+  };
+  startStudy((root) => runLessons(root, cards, { ...studyCtx, nextLessons }));
+}
+
+/** Today's lessons, continuing up to the daily limit; with ignoreLimit, one batch past it. */
 function startLessons(ignoreLimit) {
-  const { available } = lessonQueue({ ignoreLimit });
-  const batch = available.slice(0, state.settings.lessonBatch);
-  if (!batch.length) { toast('No new characters right now.'); return; }
-  startStudy((root) => runLessons(root, batch, studyCtx));
+  if (ignoreLimit) {
+    const batch = lessonQueue({ ignoreLimit: true }).available.slice(0, state.settings.lessonBatch);
+    runLessonBatches(() => batch.filter(notStarted));
+  } else {
+    runLessonBatches(() => lessonQueue().available);
+  }
+}
+
+/** Lessons for characters picked on the Choose lessons page, ignoring the daily limit. */
+function startChosenLessons(cards) {
+  runLessonBatches(() => cards.filter(notStarted));
 }
 
 function practice(cards, title = 'Practice') {
@@ -98,12 +123,13 @@ async function sync({ quiet = false } = {}) {
 /** Re-render list pages (not study sessions) to show new data. */
 function refreshIfIdle() {
   const name = location.hash.slice(1) || 'today';
-  if (name === 'today' || name === 'settings' || name === 'characters') route();
+  if (name === 'today' || name === 'settings' || name === 'characters') route(); // not Choose lessons: keep the selection
 }
 
 const viewOpts = () => ({
   onStartReviews: startReviews,
   onStartLessons: startLessons,
+  onStartChosen: startChosenLessons,
   onSync: () => sync(),
   onPractice: (card) => practice([card], 'Practice'),
   onExtraPractice: extraPractice,
@@ -112,8 +138,9 @@ const viewOpts = () => ({
 });
 
 function setNav(name) {
+  const navName = name === 'lessons' ? 'today' : name; // Choose lessons is reached from Today
   document.querySelectorAll('.nav a').forEach((a) => {
-    if (a.getAttribute('href') === `#${name}`) a.setAttribute('aria-current', 'page');
+    if (a.getAttribute('href') === `#${navName}`) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
   document.body.dataset.view = name;
@@ -137,6 +164,7 @@ function route() {
     cleanup = fn(root) || null;
   } else if (name === 'characters') renderCharacters(root, viewOpts());
   else if (name === 'settings') renderSettings(root, viewOpts());
+  else if (name === 'lessons') renderLessonPicker(root, viewOpts());
   else {
     if (name !== 'today') history.replaceState(null, '', '#today');
     setNav('today');

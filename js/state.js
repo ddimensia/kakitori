@@ -157,7 +157,8 @@ export function introducedToday() {
 }
 
 /** New cards in lesson order, honouring the daily limit. */
-export function lessonQueue({ ignoreLimit = false } = {}) {
+/** Every character not started yet, in the order lessons would teach it. */
+export function pendingLessons() {
   const pending = [...state.cards.values()].filter((c) => studyable(c) && !c.introducedAt);
   const kana = pending.filter((c) => c.kind !== 'kanji').sort((a, b) => a.order - b.order);
   const kanji = pending.filter((c) => c.kind === 'kanji').sort((a, b) => a.order - b.order);
@@ -172,6 +173,12 @@ export function lessonQueue({ ignoreLimit = false } = {}) {
       if (i < kana.length) ordered.push(kana[i]);
     }
   }
+  return ordered;
+}
+
+/** Today's lessons: the next characters in order, up to what's left of the daily limit. */
+export function lessonQueue({ ignoreLimit = false } = {}) {
+  const ordered = pendingLessons();
   const left = ignoreLimit ? ordered.length : Math.max(0, state.settings.newPerDay - introducedToday());
   return { available: ordered.slice(0, left), waiting: ordered.length };
 }

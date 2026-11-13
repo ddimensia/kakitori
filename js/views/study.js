@@ -12,7 +12,8 @@ import { esc, markSvg, plural } from '../ui.js';
  * Run a session in `view`.
  * @param {HTMLElement} view
  * @param {Session} session
- * @param {{onExit:()=>void, setKeys:(fn)=>void}} ctx
+ * @param {{onExit:()=>void, setKeys:(fn)=>void, nextLessons?:()=>(null|{count:number, batch:number, start:()=>void})}} ctx
+ *   nextLessons, during lessons, says whether more lessons follow this batch's quiz.
  */
 function fresh(view) {
   const root = document.createElement('div');
@@ -73,6 +74,7 @@ export function runSession(parent, session, ctx) {
     const firstGrades = new Map();
     for (const h of session.history) if (!firstGrades.has(h.card.id)) firstGrades.set(h.card.id, h);
     const missed = [...firstGrades.values()].filter((h) => h.rating <= 2).map((h) => h.card);
+    const more = ctx.nextLessons?.() || null;
     view.querySelector('.study-bar').hidden = true;
     host.innerHTML = s.reviewed === 0
       ? `<div class="summary"><h2>Nothing to review right now.</h2><button class="btn primary" data-act="end">Back to today</button></div>`
@@ -84,9 +86,13 @@ export function runSession(parent, session, ctx) {
           </ul>
           <div class="summary-actions">
             ${missed.length ? `<button class="btn" data-act="practice-missed">Practice the ${plural(missed.length, 'miss', 'misses')} again</button>` : ''}
-            <button class="btn primary" data-act="end">Back to today</button>
+            <button class="btn${more ? '' : ' primary'}" data-act="end">Back to today</button>
+            ${more ? `<button class="btn primary" data-act="next-lessons">Learn ${more.batch} more</button>` : ''}
           </div>
+          ${more && more.count > more.batch ? `<p class="summary-line sub">${more.count - more.batch} more after that.</p>` : ''}
         </div>`;
+    host.querySelector('[data-act="next-lessons"]')?.addEventListener('click', () => { writer?.destroy(); more.start(); });
+    if (more) host.querySelector('[data-act="next-lessons"]').focus({ preventScroll: true });
     host.querySelector('[data-act="practice-missed"]')?.addEventListener('click', () => {
       const s2 = new Session(missed, { scheduled: false, title: 'Extra practice' });
       runSession(parent, s2, ctx);

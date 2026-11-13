@@ -73,8 +73,10 @@ export async function renderToday(view, { onStartReviews, onStartLessons, onSync
           <p class="big"><span class="num">${available.length}</span> <span class="unit">new today</span></p>
           <p class="sub">${esc(lessonsSub)}</p>
           <div class="action-row">
-            <button class="btn ${due.length ? '' : 'primary'}" data-act="lessons" ${available.length ? '' : 'disabled'}>Start lessons</button>
-            ${!available.length && waiting ? `<button class="btn quiet" data-act="lessons-extra">Learn ${Math.min(s.lessonBatch, waiting)} more anyway</button>` : ''}
+            ${available.length || !waiting
+              ? `<button class="btn ${due.length ? '' : 'primary'}" data-act="lessons" ${available.length ? '' : 'disabled'}>Start lessons</button>`
+              : `<button class="btn" data-act="lessons-extra">Learn ${Math.min(s.lessonBatch, waiting)} more anyway</button>`}
+            ${waiting ? '<a class="btn quiet" href="#lessons">Choose lessons</a>' : ''}
           </div>
         </div>
         <div class="week" aria-label="Reviews due over the next seven days">

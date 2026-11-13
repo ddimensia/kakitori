@@ -463,6 +463,7 @@ select:focus, input:focus { border-color: var(--cover); outline: none; box-shado
 .cell-mark { position: absolute; width: 46%; height: 46%; right: -8%; top: -8%; transform: rotate(-8deg); }
 .cell-mark path { stroke: var(--pen); stroke-width: 7; fill: none; stroke-linecap: round; }
 .summary-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.summary-actions + .summary-line { margin-top: 0.75rem; }
 
 /* ---------- Dialogs ---------- */
 
