@@ -110,7 +110,7 @@ export async function clearStore(store) {
 
 export async function exportAll() {
   const out = { app: 'kakitori', version: 1, exportedAt: new Date().toISOString(), kv: {} };
-  for (const key of ['settings', 'sync']) out.kv[key] = await kvGet(key);
+  for (const key of ['settings', 'sync', 'kumitate']) out.kv[key] = await kvGet(key);
   if (out.kv.settings) out.kv.settings = { ...out.kv.settings, wkToken: '' };
   out.cards = await getAll('cards');
   out.subjects = await getAll('subjects');
@@ -127,6 +127,7 @@ export async function importAll(data) {
   await putMany('log', (data.log || []).map((e) => { const { id, ...rest } = e; return rest; }));
   if (data.kv?.settings) await kvSet('settings', { ...data.kv.settings, wkToken: current.wkToken || '' });
   if (data.kv?.sync) await kvSet('sync', data.kv.sync);
+  if (data.kv?.kumitate) await kvSet('kumitate', data.kv.kumitate);
 }
 
 export async function wipeAll() {

@@ -37,6 +37,7 @@ const SHELL = [
   'js/writer.js',
   'js/ui.js',
   'js/wanikani.js',
+  'js/kumitate.js',
   'js/views/today.js',
   'js/views/study.js',
   'js/views/characters.js',
