@@ -77,8 +77,10 @@ internet connection once installed. Only WaniKani sync needs a connection.
 
 1. Create a GitHub repository and upload the contents of this folder, with
    `index.html` at the top level.
-2. In the repository, go to Settings → Pages and choose Deploy from a branch, using
-   `main` and `/ (root)`.
+2. In the repository, go to Settings → Pages and set Source to GitHub Actions. The
+   Deploy workflow (`.github/workflows/deploy.yml`) then publishes the app on every push
+   to `main`, once the tests pass. It publishes only the app's own files, and adds the
+   commit id to the offline cache version so installed copies update.
 3. Open the Pages URL (`https://<username>.github.io/<repository>/`). To install it,
    click the install icon at the right of Chrome's or Edge's address bar, or on an
    iPad or iPhone tap Share → Add to Home Screen in Safari.
@@ -202,15 +204,16 @@ The built-in kanji lists are rebuilt with `tools/build_kanji_info.py`; its heade
 input files and where they come from. A GitHub Actions workflow
 (`.github/workflows/update-kanji-data.yml`) does this on the 2nd of every month with the
 latest KANJIDIC2 and JMdict, as their licence asks for regular updates. It commits only
-when the data changed and `tools/check_kanji_info.py` finds nothing wrong, then asks
-GitHub Pages to republish. Installed apps pick up the new file the next time they're
+when the data changed and `tools/check_kanji_info.py` finds nothing wrong; the Deploy
+workflow then publishes it. Installed apps pick up the new file the next time they're
 opened online. To run it now, open the repository's Actions tab, choose Update kanji
 data and click Run workflow.
 
 After changing data/strokes/ or fonts/, run `python3 tools/build_precache.py .` (fonts come
 from the `@fontsource/klee-one` and `@fontsource/zen-kaku-gothic-new` npm packages, via
-`tools/build_fonts.py`). After changing any app file, bump `VERSION` in `sw.js` so
-installed copies update.
+`tools/build_fonts.py`). The Deploy workflow adds the commit id to `VERSION` in
+`sw.js`, so installed copies update; if you host the folder some other way, bump
+`VERSION` by hand after changing any app file.
 
 ## License
 
