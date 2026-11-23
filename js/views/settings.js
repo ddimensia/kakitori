@@ -4,7 +4,7 @@ import { state, saveSettings, loadState, KANJI_SOURCES, isBuiltinSource } from '
 import { SRS_THRESHOLDS } from '../wanikani.js';
 import { STRICTNESS } from '../grader.js';
 import { exportAll, importAll, wipeAll } from '../store.js';
-import { esc, toast, confirmDialog, relativeTime } from '../ui.js';
+import { esc, toast, confirmDialog, relativeTime, KUMITATE_URL } from '../ui.js';
 
 const TOKEN_URL = 'https://www.wanikani.com/settings/personal_access_tokens';
 
@@ -25,7 +25,8 @@ export function renderSettings(view, { onSync, syncStatus, onRefresh }) {
             <span class="help">${isBuiltinSource(s.kanjiSource)
               ? 'Kanji arrive through lessons in this order. Meanings and readings come from KANJIDIC2; JLPT levels are the widely used unofficial lists, since the JLPT no longer publishes official ones.'
               : 'WaniKani adds the kanji you’ve started there. The built-in lists work without a WaniKani account.'}
-              Progress is kept per character, so switching keeps what you’ve learned.</span>
+              Progress is kept per character, so switching keeps what you’ve learned.
+              ${isBuiltinSource(s.kanjiSource) ? `To learn these kanji’s meanings, readings and vocabulary as well, try <a href="${KUMITATE_URL}" target="_blank" rel="noopener">Kumitate Kanji</a>, which teaches them in the same JLPT order.` : ''}</span>
           </label>
           <label class="check"><input type="checkbox" name="vocabContext" ${s.vocabContext ? 'checked' : ''}> Show an example word as a hint, with the kanji blanked out</label>
           <label class="check"><input type="checkbox" name="hiragana" ${s.hiragana ? 'checked' : ''}> Hiragana</label>

@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS = {
   penOnly: true,
   autoSyncHours: 6,
   welcomed: false, // has seen the welcome page
+  kumitateBanner: true, // show the Kumitate Kanji banner on Today until it's closed
 };
 
 export const state = {

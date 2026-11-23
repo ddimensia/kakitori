@@ -81,3 +81,6 @@ export function relativeTime(ts, now = Date.now()) {
 export function plural(n, word, pluralWord = `${word}s`) {
   return `${n} ${n === 1 ? word : pluralWord}`;
 }
+
+/** Kumitate Kanji, the companion app for kanji meanings, readings and vocabulary. */
+export const KUMITATE_URL = 'https://ddimensia.github.io/kumitate-kanji/';

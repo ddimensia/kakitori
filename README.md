@@ -215,6 +215,10 @@ from the `@fontsource/klee-one` and `@fontsource/zen-kaku-gothic-new` npm packag
 `sw.js`, so installed copies update; if you host the folder some other way, bump
 `VERSION` by hand after changing any app file.
 
+## See also
+
+[Kumitate Kanji](https://ddimensia.github.io/kumitate-kanji/) ([source](https://github.com/ddimensia/kumitate-kanji)), from the same maker, teaches kanji meanings, readings and vocabulary: radicals first, then the kanji built from them, then the words that use them, with spaced repetition. Kakitori is for writing; Kumitate Kanji is for reading.
+
 ## License
 
 Kakitori's own code is released under the [MIT License](LICENSE).

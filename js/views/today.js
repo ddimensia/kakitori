@@ -1,7 +1,7 @@
 // Today: what's due, lessons available, the coming week, your character sheet and WaniKani sync.
 
-import { state, dueCards, lessonQueue, introducedToday, KANJI_SOURCES, isBuiltinSource } from '../state.js';
-import { esc, relativeTime, plural } from '../ui.js';
+import { state, dueCards, lessonQueue, introducedToday, KANJI_SOURCES, isBuiltinSource, saveSettings } from '../state.js';
+import { esc, relativeTime, plural, KUMITATE_URL } from '../ui.js';
 import { sheetMarkup, legendMarkup, openCardDetail } from './characters.js';
 import { logSince } from '../store.js';
 
@@ -59,8 +59,19 @@ export async function renderToday(view, { onStartReviews, onStartLessons, onSync
   const answeredToday = todayLog.length;
   const recalledToday = todayLog.filter((l) => l.rating >= 2).length;
 
+  // A one-line pointer to the companion reading app; closing it hides it for good.
+  const promo = s.kumitateBanner ? `<aside class="promo" aria-label="Companion app">
+        <a class="promo-link" href="${KUMITATE_URL}" target="_blank" rel="noopener">
+          <span class="promo-jp" lang="ja">組み立て漢字</span>
+          <span class="promo-text">Learn to read the kanji you write: <b>Kumitate Kanji</b> teaches kanji meanings, readings and vocabulary. Free, from the maker of Kakitori.</span>
+          <span class="promo-go">Take a look →</span>
+        </a>
+        <button class="promo-x" type="button" data-act="promo-close" aria-label="Hide this">✕</button>
+      </aside>` : '';
+
   view.innerHTML = `
     <section class="page today">
+      ${promo}
       <div class="today-top">
         <div class="action">
           <h2>Reviews</h2>
@@ -107,6 +118,10 @@ export async function renderToday(view, { onStartReviews, onStartLessons, onSync
       else if (a === 'lessons-extra') onStartLessons(true);
       else if (a === 'sync') onSync();
       else if (a === 'extra') onExtraPractice();
+      else if (a === 'promo-close') {
+        b.closest('.promo').remove();
+        saveSettings({ kumitateBanner: false });
+      }
       return;
     }
     const cell = e.target.closest('[data-card]');
