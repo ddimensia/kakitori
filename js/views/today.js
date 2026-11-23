@@ -1,7 +1,7 @@
 // Today: what's due, lessons available, the coming week, your character sheet and WaniKani sync.
 
-import { state, dueCards, lessonQueue, introducedToday, KANJI_SOURCES, isBuiltinSource } from '../state.js';
-import { esc, relativeTime, plural } from '../ui.js';
+import { state, dueCards, lessonQueue, introducedToday, KANJI_SOURCES, isBuiltinSource, saveSettings } from '../state.js';
+import { esc, relativeTime, plural, KUMITATE_URL } from '../ui.js';
 import { sheetMarkup, legendMarkup, openCardDetail } from './characters.js';
 import { logSince } from '../store.js';
 
@@ -42,11 +42,18 @@ export async function renderToday(view, { onStartReviews, onStartLessons, onSync
   let lessonsSub;
   if (available.length) lessonsSub = waiting > available.length ? `${waiting - available.length} more waiting after today.` : 'These are the last new characters for now.';
   else if (waiting) lessonsSub = `You’ve learned ${doneToday} today. ${waiting} waiting for tomorrow.`;
+  else if (s.kanjiSource === 'kumitate') lessonsSub = state.kumitate?.summary ? 'You’re caught up with Kumitate Kanji. New kanji arrive as you learn them there.' : 'No Kumitate Kanji progress found in this browser yet.';
   else if (s.kanjiSource === 'wanikani') lessonsSub = s.wkToken ? 'You’re caught up with WaniKani. New kanji arrive as you do lessons there.' : 'Connect WaniKani or choose a kanji list in Settings.';
   else lessonsSub = 'You’ve started every character in your list.';
 
   const wk = (() => {
     if (isBuiltinSource(s.kanjiSource)) return `<p class="wk-line">Kanji list: ${esc(KANJI_SOURCES[s.kanjiSource])}.</p><a class="btn quiet" href="#settings">Change list</a>`;
+    if (s.kanjiSource === 'kumitate') {
+      const k = state.kumitate?.summary;
+      return k
+        ? `<p class="wk-line">Following <a href="${KUMITATE_URL}" target="_blank" rel="noopener">Kumitate Kanji</a>: ${plural(k.kanji.length, 'kanji', 'kanji')} started there, last updated ${esc(relativeTime(k.updatedAt))}.</p><a class="btn quiet" href="#settings">Settings</a>`
+        : `<p class="wk-line">Following <a href="${KUMITATE_URL}" target="_blank" rel="noopener">Kumitate Kanji</a>, but it has no progress in this browser yet. Kanji you start there will appear here.</p><a class="btn quiet" href="#settings">Change list</a>`;
+    }
     if (s.kanjiSource === 'none') return `<p class="wk-line">Kana only. You can add kanji from WaniKani or a built-in list.</p><a class="btn" href="#settings">Choose kanji</a>`;
     if (syncStatus) return `<p class="wk-line is-busy" data-sync-status>${esc(syncStatus)}…</p>`;
     if (!s.wkToken) return `<p class="wk-line">WaniKani isn’t connected, so only kana are included. You can also pick a built-in kanji list instead.</p><a class="btn" href="#settings">Connect WaniKani or choose a list</a>`;
@@ -59,8 +66,19 @@ export async function renderToday(view, { onStartReviews, onStartLessons, onSync
   const answeredToday = todayLog.length;
   const recalledToday = todayLog.filter((l) => l.rating >= 2).length;
 
+  // A one-line pointer to the companion reading app; closing it hides it for good.
+  const promo = s.kumitateBanner ? `<aside class="promo" aria-label="Companion app">
+        <a class="promo-link" href="${KUMITATE_URL}" target="_blank" rel="noopener">
+          <span class="promo-jp" lang="ja">組み立て漢字</span>
+          <span class="promo-text">Learn to read the kanji you write: <b>Kumitate Kanji</b> teaches kanji meanings, readings and vocabulary. Free, from the maker of Kakitori.</span>
+          <span class="promo-go">Take a look →</span>
+        </a>
+        <button class="promo-x" type="button" data-act="promo-close" aria-label="Hide this">✕</button>
+      </aside>` : '';
+
   view.innerHTML = `
     <section class="page today">
+      ${promo}
       <div class="today-top">
         <div class="action">
           <h2>Reviews</h2>
@@ -107,6 +125,10 @@ export async function renderToday(view, { onStartReviews, onStartLessons, onSync
       else if (a === 'lessons-extra') onStartLessons(true);
       else if (a === 'sync') onSync();
       else if (a === 'extra') onExtraPractice();
+      else if (a === 'promo-close') {
+        b.closest('.promo').remove();
+        saveSettings({ kumitateBanner: false });
+      }
       return;
     }
     const cell = e.target.closest('[data-card]');

@@ -4,12 +4,14 @@
 import * as store from './store.js';
 import { KANA, KANA_BY_CHAR, selectedKana } from './kana.js';
 import { configureSrs, newSrsCard, review, knownSrsCard, State } from './srs.js';
+import { readKumitate, meetsThreshold } from './kumitate.js';
 
 export const DEFAULT_SETTINGS = {
   wkToken: '',
   knownStage: 1,
   vocabContext: true,
-  kanjiSource: 'wanikani', // wanikani | jlpt | grade | frequency | none
+  kanjiSource: 'wanikani', // wanikani | kumitate | jlpt | grade | frequency | none
+  kumitateStage: 'started', // which Kumitate Kanji kanji to include: started | fresh | passed
   hiragana: true,
   katakana: true,
   dakuten: true,
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS = {
   penOnly: true,
   autoSyncHours: 6,
   welcomed: false, // has seen the welcome page
+  kumitateBanner: true, // show the Kumitate Kanji banner on Today until it's closed
 };
 
 export const state = {
@@ -32,10 +35,12 @@ export const state = {
   cards: new Map(),
   subjects: new Map(),
   builtin: null, // data/kanji-info.json once loaded
+  kumitate: null, // { at, summary } last read from Kumitate Kanji, or { at, summary: null } if none was found
 };
 
 export const KANJI_SOURCES = {
   wanikani: 'Kanji you’ve started on WaniKani',
+  kumitate: 'Kanji you’ve started in Kumitate Kanji',
   jlpt: 'JLPT order, N5 to N1 (2,211 kanji)',
   grade: 'Japanese school order, grade 1 to secondary school (2,136 jōyō kanji)',
   frequency: 'Most frequent first (2,501 kanji)',
@@ -43,6 +48,50 @@ export const KANJI_SOURCES = {
 };
 
 export const isBuiltinSource = (src) => src === 'jlpt' || src === 'grade' || src === 'frequency';
+/** Sources whose meanings, readings and words come from the built-in kanji data. */
+const usesBuiltinInfo = (src) => isBuiltinSource(src) || src === 'kumitate';
+
+/**
+ * Read Kumitate Kanji's shared progress and update the card list. Returns true if the kanji
+ * list changed. Keeps the last good copy, so a missing or unreadable summary changes nothing.
+ */
+export async function refreshKumitate() {
+  let summary;
+  try {
+    summary = await readKumitate();
+  } catch (err) {
+    console.warn('Could not read Kumitate Kanji progress', err);
+    return false;
+  }
+  const before = JSON.stringify(state.kumitate?.summary?.kanji ?? null);
+  if (summary) state.kumitate = { at: Date.now(), summary };
+  else if (!state.kumitate?.summary) state.kumitate = { at: Date.now(), summary: null };
+  else return false; // keep the last list if the summary disappears (e.g. cleared site data)
+  await store.kvSet('kumitate', state.kumitate);
+  if (JSON.stringify(state.kumitate.summary?.kanji ?? null) === before) return false;
+  await reconcileCards();
+  return true;
+}
+
+let kumitateIndex = { summary: null, map: new Map() };
+/** A kanji's entry in Kumitate Kanji's summary, if it's there. */
+function kumitateEntry(ch) {
+  const summary = state.kumitate?.summary || null;
+  if (kumitateIndex.summary !== summary) kumitateIndex = { summary, map: new Map((summary?.kanji || []).map((k) => [k.ch, k])) };
+  return kumitateIndex.map.get(ch);
+}
+
+/** Kumitate Kanji's own JLPT level for a kanji when following it (the lists differ a little). */
+function jlptFor(ch, e) {
+  if (state.settings.kanjiSource === 'kumitate') return kumitateEntry(ch)?.jlpt ?? e.j;
+  return e.j;
+}
+
+/** Kanji from Kumitate Kanji that meet the chosen threshold. */
+function kumitateKanji() {
+  const list = state.kumitate?.summary?.kanji || [];
+  return list.filter((k) => meetsThreshold(k, state.settings.kumitateStage));
+}
 
 let builtinPromise = null;
 /** Load the built-in kanji lists (about 0.7 MB) the first time a built-in list is used. */
@@ -70,9 +119,11 @@ export async function loadState() {
   state.sync = (await store.kvGet('sync')) || null;
   state.cards = new Map((await store.getAll('cards')).map((c) => [c.id, c]));
   state.subjects = new Map((await store.getAll('subjects')).map((s) => [s.char, s]));
+  state.kumitate = (await store.kvGet('kumitate')) || null;
   // People who used the app before the welcome page existed go straight to Today.
   if (saved.welcomed === undefined && (Object.keys(saved).length || [...state.cards.values()].some((c) => c.introducedAt))) state.settings.welcomed = true;
   configureSrs(state.settings);
+  if (state.settings.kanjiSource === 'kumitate') await refreshKumitate();
   await reconcileCards();
 }
 
@@ -86,6 +137,7 @@ export async function saveSettings(patch) {
   state.settings = { ...state.settings, ...patch };
   await store.kvSet('settings', state.settings);
   configureSrs(state.settings);
+  if (patch.kanjiSource === 'kumitate') await refreshKumitate();
   await reconcileCards();
 }
 
@@ -107,6 +159,9 @@ export async function reconcileCards() {
     for (const sub of state.subjects.values()) {
       if (sub.srsStage >= s.knownStage) wanted.set(cardId('kanji', sub.char), { char: sub.char, kind: 'kanji', order: kanjiOrder(sub) });
     }
+  } else if (s.kanjiSource === 'kumitate') {
+    await ensureBuiltin();
+    for (const k of kumitateKanji()) wanted.set(cardId('kanji', k.ch), { char: k.ch, kind: 'kanji', order: k.order });
   } else if (isBuiltinSource(s.kanjiSource)) {
     const data = await ensureBuiltin();
     data.lists[s.kanjiSource].forEach((ch, i) => wanted.set(cardId('kanji', ch), { char: ch, kind: 'kanji', order: i }));
@@ -287,7 +342,7 @@ export async function resetCard(card) {
 }
 
 function builtinLevelLabel(e, source) {
-  if (source === 'jlpt') return e.j ? `JLPT N${e.j}` : 'JLPT';
+  if (source === 'jlpt' || source === 'kumitate') return e.j ? `JLPT N${e.j}` : 'JLPT';
   if (source === 'grade') return e.g && e.g <= 6 ? `Grade ${e.g}` : 'Secondary school';
   return e.f ? `Frequency #${e.f}` : 'Frequency';
 }
@@ -298,7 +353,7 @@ function builtinLevelLabel(e, source) {
  */
 export function kanjiInfo(ch) {
   const src = state.settings.kanjiSource;
-  if (isBuiltinSource(src) && state.builtin) {
+  if (usesBuiltinInfo(src) && state.builtin) {
     const e = state.builtin.kanji[ch];
     if (!e) return null;
     return {
@@ -308,7 +363,7 @@ export function kanjiInfo(ch) {
         kunyomi: e.kun.map((reading) => ({ reading, primary: false })),
       },
       words: (e.w || []).map(([w, r, m]) => ({ w, r, m })),
-      levelLabel: builtinLevelLabel(e, src),
+      levelLabel: builtinLevelLabel({ ...e, j: jlptFor(ch, e) }, src),
       url: `https://jisho.org/search/${encodeURIComponent(`${ch} #kanji`)}`,
       urlLabel: 'Look up on Jisho',
     };
@@ -328,6 +383,7 @@ export function kanjiInfo(ch) {
 /** Whether a kanji counts as one you know (for the same-meaning check). */
 export function isKnownKanji(ch) {
   if (state.settings.kanjiSource === 'wanikani') return (state.subjects.get(ch)?.srsStage ?? 0) >= 1;
+  if (state.settings.kanjiSource === 'kumitate' && kumitateEntry(ch)) return true;
   return !!state.cards.get(cardId('kanji', ch))?.introducedAt;
 }
 
@@ -335,9 +391,10 @@ export function isKnownKanji(ch) {
 export function groupFor(card) {
   if (card.kind !== 'kanji') return card.kind === 'hiragana' ? { key: 'a', label: 'Hiragana' } : { key: 'b', label: 'Katakana' };
   const src = state.settings.kanjiSource;
-  if (isBuiltinSource(src) && state.builtin) {
-    const e = state.builtin.kanji[card.char] || {};
-    if (src === 'jlpt') return { key: `j${6 - (e.j || 0)}`, label: e.j ? `Kanji, JLPT N${e.j}` : 'Kanji' };
+  if (usesBuiltinInfo(src) && state.builtin) {
+    const e = { ...(state.builtin.kanji[card.char] || {}) };
+    e.j = jlptFor(card.char, e);
+    if (src === 'jlpt' || src === 'kumitate') return { key: `j${6 - (e.j || 0)}`, label: e.j ? `Kanji, JLPT N${e.j}` : 'Kanji' };
     if (src === 'grade') return e.g <= 6 ? { key: `g${e.g}`, label: `Kanji, grade ${e.g}` } : { key: 'g8', label: 'Kanji, secondary school' };
     const band = Math.floor(((e.f || 2501) - 1) / 250);
     return { key: `f${String(band).padStart(2, '0')}`, label: `Kanji, frequency ${band * 250 + 1}–${(band + 1) * 250}` };

@@ -1,10 +1,11 @@
 // Settings: WaniKani connection, which characters to study, scheduling, grading and backups.
 
 import { state, saveSettings, loadState, KANJI_SOURCES, isBuiltinSource } from '../state.js';
+import { KUMITATE_THRESHOLDS } from '../kumitate.js';
 import { SRS_THRESHOLDS } from '../wanikani.js';
 import { STRICTNESS } from '../grader.js';
 import { exportAll, importAll, wipeAll } from '../store.js';
-import { esc, toast, confirmDialog, relativeTime } from '../ui.js';
+import { esc, toast, confirmDialog, relativeTime, plural, KUMITATE_URL } from '../ui.js';
 
 const TOKEN_URL = 'https://www.wanikani.com/settings/personal_access_tokens';
 
@@ -24,8 +25,11 @@ export function renderSettings(view, { onSync, syncStatus, onRefresh }) {
             <select name="kanjiSource">${Object.entries(KANJI_SOURCES).map(([v, l]) => `<option value="${v}" ${v === s.kanjiSource ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
             <span class="help">${isBuiltinSource(s.kanjiSource)
               ? 'Kanji arrive through lessons in this order. Meanings and readings come from KANJIDIC2; JLPT levels are the widely used unofficial lists, since the JLPT no longer publishes official ones.'
-              : 'WaniKani adds the kanji you’ve started there. The built-in lists work without a WaniKani account.'}
-              Progress is kept per character, so switching keeps what you’ve learned.</span>
+              : s.kanjiSource === 'kumitate'
+                ? `Kakitori follows the kanji you learn in <a href="${KUMITATE_URL}" target="_blank" rel="noopener">Kumitate Kanji</a> in this browser, in the order you learn them there, so you write the kanji you can already read.`
+                : `WaniKani adds the kanji you’ve started there, and Kumitate Kanji the kanji you’ve started in it. The built-in lists work without either.`}
+              Progress is kept per character, so switching keeps what you’ve learned.
+              ${isBuiltinSource(s.kanjiSource) ? `To learn these kanji’s meanings, readings and vocabulary as well, try <a href="${KUMITATE_URL}" target="_blank" rel="noopener">Kumitate Kanji</a>, which teaches them in the same JLPT order.` : ''}</span>
           </label>
           <label class="check"><input type="checkbox" name="vocabContext" ${s.vocabContext ? 'checked' : ''}> Show an example word as a hint, with the kanji blanked out</label>
           <label class="check"><input type="checkbox" name="hiragana" ${s.hiragana ? 'checked' : ''}> Hiragana</label>
@@ -34,6 +38,16 @@ export function renderSettings(view, { onSync, syncStatus, onRefresh }) {
           <span class="help">Turning a set off hides it but keeps its progress.</span>
         </fieldset>
 
+${s.kanjiSource === 'kumitate' ? `
+        <fieldset>
+          <legend>Kumitate Kanji</legend>
+          <label class="field">Kumitate Kanji kanji to include
+            <select name="kumitateStage">${KUMITATE_THRESHOLDS.map((t) => `<option value="${t.value}" ${t.value === s.kumitateStage ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select>
+            <span class="help">Only kanji this far along in Kumitate Kanji appear here.</span>
+          </label>
+          <p class="help">${kumitateStatus()} Kakitori checks again whenever you open it or come back to its tab. It only reads; it never changes anything in Kumitate Kanji.</p>
+        </fieldset>
+` : ''}
 ${s.kanjiSource === 'wanikani' ? `
         <fieldset>
           <legend>WaniKani</legend>
@@ -186,4 +200,12 @@ ${s.kanjiSource === 'wanikani' ? `
       e.target.value = '';
     }
   });
+}
+
+/** One line on what was last read from Kumitate Kanji. */
+export function kumitateStatus() {
+  const k = state.kumitate;
+  if (!k?.summary) return `No Kumitate Kanji progress found in this browser yet. Study a few kanji in <a href="${KUMITATE_URL}" target="_blank" rel="noopener">Kumitate Kanji</a> using this same browser and they’ll appear here.`;
+  const n = k.summary.kanji.length;
+  return `${plural(n, 'kanji', 'kanji')} started in Kumitate Kanji, last updated ${esc(relativeTime(k.summary.updatedAt))}.`;
 }

@@ -4,6 +4,7 @@ name: Tests
 # pass); on other branches and pull requests they run on their own.
 #
 # The browser tests drive the app with real mouse strokes against a mocked WaniKani API.
+# tests/kumitate_test.py runs against the current Kumitate Kanji main branch.
 # tests/grading_test.py is left out: it's a tuning tool that needs a local KanjiVG checkout.
 on:
   push:
@@ -25,6 +26,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_run' && 'main' || '' }}
+      # Kumitate Kanji, for the test of reading its shared progress (tests/kumitate_test.py).
+      - uses: actions/checkout@v7
+        with:
+          repository: ddimensia/kumitate-kanji
+          path: _kumitate
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -41,8 +47,11 @@ jobs:
           python -m playwright install --with-deps chromium
           python -m http.server 8765 --bind 127.0.0.1 &
           sleep 1
-          for t in e2e builtin_test known_test welcome_test picker_test; do
+          for t in e2e builtin_test known_test welcome_test picker_test promo_test; do
             echo "::group::$t"
             python "tests/$t.py"
             echo "::endgroup::"
           done
+          echo "::group::kumitate_test"
+          KUMITATE_DIR=_kumitate python tests/kumitate_test.py
+          echo "::endgroup::"

@@ -4,7 +4,7 @@
 > affiliated with or endorsed by WaniKani or Tofugu LLC.
 
 A practice notebook for writing Japanese by hand. You write kana and the kanji you've
-started on WaniKani, or from built-in JLPT, school-grade or frequency lists, with a
+started on WaniKani or in Kumitate Kanji, or from built-in JLPT, school-grade or frequency lists, with a
 mouse, finger or stylus. Each attempt is graded stroke by
 stroke against KanjiVG, checked for legibility with the KanjiCanvas recognizer, and
 scheduled with FSRS spaced repetition.
@@ -27,6 +27,13 @@ calls go to WaniKani's API.
   switching between WaniKani and a list keeps what you've learned. The JLPT has published
   no official kanji lists since 2010; these levels are the widely used unofficial ones by
   Jonathan Waller.
+- **Follow Kumitate Kanji.** If you learn kanji meanings and readings in
+  [Kumitate Kanji](https://ddimensia.github.io/kumitate-kanji/) in the same browser, choose
+  "Kanji you've started in Kumitate Kanji" and Kakitori adds them in the order you learn
+  them there, so you write the kanji you can already read. You choose the cutoff: every
+  kanji you've started, ones past their first day of reviews, or ones that have unlocked
+  their words. Kakitori reads the summary Kumitate Kanji shares and never changes its data.
+  It checks again whenever you open Kakitori or switch back to its tab.
 - **Kana.** Hiragana and katakana, with or without dakuten. Each set can be turned off.
 - **Lessons.** For each new character you watch an animated stroke-order model, trace
   it over a guide, then write the whole batch from memory. That first quiz starts the
@@ -174,6 +181,7 @@ index.html, css/app.css      app shell and styles
 js/main.js                   routing, sync, starting sessions
 js/state.js, js/store.js     cards and settings, IndexedDB persistence
 js/wanikani.js               WaniKani API v2 client
+js/kumitate.js               reads the progress Kumitate Kanji shares in this browser
 js/srs.js, js/session.js     FSRS wrapper, session queue with learning steps and undo
 js/pad.js                    drawing pad (pointer events, palm rejection, hi-DPI)
 js/grader.js                 stroke matching and grading
@@ -214,6 +222,10 @@ from the `@fontsource/klee-one` and `@fontsource/zen-kaku-gothic-new` npm packag
 `tools/build_fonts.py`). The Deploy workflow adds the commit id to `VERSION` in
 `sw.js`, so installed copies update; if you host the folder some other way, bump
 `VERSION` by hand after changing any app file.
+
+## See also
+
+[Kumitate Kanji](https://ddimensia.github.io/kumitate-kanji/) ([source](https://github.com/ddimensia/kumitate-kanji)), from the same maker, teaches kanji meanings, readings and vocabulary: radicals first, then the kanji built from them, then the words that use them, with spaced repetition. Kakitori is for writing; Kumitate Kanji is for reading. Kakitori can follow the kanji you learn there (see above).
 
 ## License
 
