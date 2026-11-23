@@ -1,0 +1,48 @@
+name: Tests
+
+# On main, these run as the first step of the Deploy workflow (which only publishes if they
+# pass); on other branches and pull requests they run on their own.
+#
+# The browser tests drive the app with real mouse strokes against a mocked WaniKani API.
+# tests/grading_test.py is left out: it's a tuning tool that needs a local KanjiVG checkout.
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BASE: http://127.0.0.1:8765/
+      SHOTS: /tmp/shots
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || '' }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Scheduler checks
+        run: |
+          node tests/fsrs_test.mjs
+          node tests/known_srs_test.mjs
+      - name: Browser tests
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+          python -m http.server 8765 --bind 127.0.0.1 &
+          sleep 1
+          for t in e2e builtin_test known_test welcome_test picker_test; do
+            echo "::group::$t"
+            python "tests/$t.py"
+            echo "::endgroup::"
+          done

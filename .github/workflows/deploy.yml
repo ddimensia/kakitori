@@ -1,0 +1,71 @@
+# Publishes the app to GitHub Pages, only after the tests pass.
+#
+# Runs on every push to main, after the monthly "Update kanji data" workflow (its commit is
+# made with the workflow token, and such pushes don't start other workflows), and by hand
+# from the Actions tab with "Run workflow".
+#
+# Only the app's own files are published (no tests, tools or workflows). sw.js gets the
+# commit id added to its app cache version, so installed copies always pick up the new
+# files without anyone having to bump VERSION by hand. (The stroke-data cache is versioned
+# by precache.json, which tools/build_precache.py maintains.)
+#
+# Needs Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ['Update kanji data']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/tests.yml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main # after a data update, publish the commit it just made
+
+      - name: Collect the site
+        run: |
+          mkdir _site
+          cp -r index.html manifest.webmanifest sw.js precache.json icon.svg icon-*.png LICENSE css js vendor fonts data _site/
+          sha=$(git rev-parse --short HEAD)
+          sed -i -E "s/^const VERSION = '([^']*)';/const VERSION = '\1-${sha}';/" _site/sw.js
+          grep -q "^const VERSION = '.*-${sha}';" _site/sw.js
+          echo "Publishing $(git log -1 --format='%h %s')" >> "$GITHUB_STEP_SUMMARY"
+          du -sh _site >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

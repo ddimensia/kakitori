@@ -18,7 +18,6 @@ on:
 
 permissions:
   contents: write # commit the updated file
-  pages: write # ask GitHub Pages to republish
 
 concurrency:
   group: update-kanji-data
@@ -29,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download the latest KANJIDIC2 and JMdict
         env:
@@ -65,7 +64,7 @@ jobs:
           set -o pipefail
           python3 tools/check_kanji_info.py data/kanji-info.json /tmp/kanji-info.json | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Commit and publish if anything changed
+      - name: Commit if anything changed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -79,8 +78,4 @@ jobs:
           git commit -m "Update kanji data from KANJIDIC2 and JMdict (jmdict-simplified $JMDICT_TAG)" -- data/kanji-info.json
           git pull --rebase --quiet
           git push
-          # A push made with this workflow's token doesn't start a GitHub Pages build by
-          # itself, so request one. This fails harmlessly while Pages is off.
-          gh api -X POST "repos/${{ github.repository }}/pages/builds" --silent \
-            && echo "Requested a GitHub Pages build." \
-            || echo "::notice::GitHub Pages isn't set up for this repository, so nothing was republished."
+          # The Deploy workflow runs when this one finishes and publishes the new data.
