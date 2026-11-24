@@ -344,12 +344,19 @@ export function gradeAttempt({ userStrokes, glyph, strictness = 'normal', hints 
     if (r.user >= 0 && r.quality < 0.45) issues.push(`Stroke ${j + 1} is off in shape or position.`);
   });
 
+  // The recognizer (KanjiCanvas) is a legibility check: it catches drawings whose strokes each
+  // pass but add up to a different character. It's unreliable on simple shapes (it reads a
+  // slightly lopsided ろ as レ or ら), so when every stroke is there, in order, in the right
+  // direction and closely matches the reference, its disagreement doesn't count.
+  const strokesConfident = orderErrors + dirErrors + missing.length + extra.length === 0 && shape >= 0.7;
   let recognised = null;
   if (recognition && recognition.candidates && recognition.candidates.length) {
     const rank = recognition.rank;
     const top = recognition.candidates[0][0];
-    recognised = { rank, top, candidates: recognition.candidates.slice(0, 5).map((c) => c[0]) };
-    if (rank > 0 && rank < 5) score -= 4;
+    const counted = !strokesConfident || rank === 0;
+    recognised = { rank, top, candidates: recognition.candidates.slice(0, 5).map((c) => c[0]), counted };
+    if (!counted) { /* strokes match closely: not counted */ }
+    else if (rank > 0 && rank < 5) score -= 4;
     else if (rank < 0 || rank >= 5) {
       score -= 12;
       issues.push(`The recognizer read this as ${top}, not ${char}.`);
@@ -364,7 +371,7 @@ export function gradeAttempt({ userStrokes, glyph, strictness = 'normal', hints 
   // difference the recognizer still reads as the target (e.g. connected kana strokes) is Hard.
   const structural = orderErrors + dirErrors + missing.length + extra.length;
   const countOff = missing.length + extra.length;
-  const legible = !recognised || (recognised.rank >= 0 && recognised.rank < 5);
+  const legible = !recognised || !recognised.counted || (recognised.rank >= 0 && recognised.rank < 5);
   const readAsTarget = !!recognised && recognised.rank === 0;
   // A reversed stroke alone usually confuses the recognizer without making a different
   // character, except for pairs that differ mainly in direction, such as シ/ツ and ソ/ン.
@@ -374,7 +381,7 @@ export function gradeAttempt({ userStrokes, glyph, strictness = 'normal', hints 
   else if (!legible && (structural - dirErrors > 0 || becameTwin)) suggested = 1;
   else if (countOff > 0 && !readAsTarget && (nR <= 4 || countOff / nR >= 0.2)) suggested = 1;
   else if (score < 70 || structural > 0 || hints > 0) suggested = 2;
-  else if (allowEasy && score >= 92 && thinkMs != null && thinkMs < 3000 && (!recognised || readAsTarget)) suggested = 4;
+  else if (allowEasy && score >= 92 && thinkMs != null && thinkMs < 3000 && (!recognised || readAsTarget || !recognised.counted)) suggested = 4;
   else suggested = 3;
 
   return {
