@@ -47,7 +47,7 @@ jobs:
           python -m playwright install --with-deps chromium
           python -m http.server 8765 --bind 127.0.0.1 &
           sleep 1
-          for t in e2e builtin_test known_test welcome_test picker_test promo_test; do
+          for t in e2e builtin_test known_test welcome_test picker_test promo_test recognizer_trust_test; do
             echo "::group::$t"
             python "tests/$t.py"
             echo "::endgroup::"

@@ -214,7 +214,7 @@ export class Writer {
     const fb = this.$('.feedback');
     fb.hidden = false;
     const recog = r.recognised
-      ? `<p class="recog">Recognizer’s top reads: <span lang="ja">${r.recognised.candidates.map((c) => esc(c)).join(' ')}</span></p>`
+      ? `<p class="recog">Recognizer’s top reads: <span lang="ja">${r.recognised.candidates.map((c) => esc(c)).join(' ')}</span>${r.recognised.counted === false ? ' (not counted: your strokes match closely)' : ''}</p>`
       : '';
     const alt = this.alternate
       ? `<div class="alt-note"><p>You wrote <span lang="ja" class="alt-char">${esc(this.alternate.char)}</span>, which also means “${esc(this.alternate.meaning)}”. This card wants a different kanji.</p>
