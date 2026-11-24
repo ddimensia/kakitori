@@ -1,4 +1,6 @@
-// Kana decks. Prompts use Hepburn romaji; where two kana share a sound the prompt says which.
+// Kana decks. Prompts use Hepburn romaji. Where two kana share a sound (じ/ぢ, ず/づ) the usual
+// one keeps its plain romaji (ji, zu: shi and su with dakuten) and the rarer one uses its
+// keyboard spelling (di, du: chi and tsu with dakuten), with a note on how it's said.
 
 const BASIC = [
   ['あ', 'a'], ['い', 'i'], ['う', 'u'], ['え', 'e'], ['お', 'o'],
@@ -15,8 +17,8 @@ const BASIC = [
 
 const DAKUTEN = [
   ['が', 'ga'], ['ぎ', 'gi'], ['ぐ', 'gu'], ['げ', 'ge'], ['ご', 'go'],
-  ['ざ', 'za'], ['じ', 'ji', 'from shi'], ['ず', 'zu', 'from su'], ['ぜ', 'ze'], ['ぞ', 'zo'],
-  ['だ', 'da'], ['ぢ', 'ji', 'from chi'], ['づ', 'zu', 'from tsu'], ['で', 'de'], ['ど', 'do'],
+  ['ざ', 'za'], ['じ', 'ji'], ['ず', 'zu'], ['ぜ', 'ze'], ['ぞ', 'zo'],
+  ['だ', 'da'], ['ぢ', 'di', 'said ji: chi with dakuten'], ['づ', 'du', 'said zu: tsu with dakuten'], ['で', 'de'], ['ど', 'do'],
   ['ば', 'ba'], ['び', 'bi'], ['ぶ', 'bu'], ['べ', 'be'], ['ぼ', 'bo'],
   ['ぱ', 'pa'], ['ぴ', 'pi'], ['ぷ', 'pu'], ['ぺ', 'pe'], ['ぽ', 'po'],
 ];
